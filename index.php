@@ -589,20 +589,22 @@
     function collectData() {
         const data = new FormData();
 
-        // Format date picker value to uppercase text
-        const dateInput = document.getElementById('wedding_date').value;
-        if (dateInput && !document.getElementById('ceremony_date').value) {
-            const d = new Date(dateInput + 'T00:00:00');
-            const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
-                            'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-            const formatted = months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
-            data.append('ceremony_date', formatted);
-        }
-
         FIELDS.forEach(id => {
             const el = document.getElementById(id);
             if (el) data.append(id, el.value);
         });
+
+        // Format date picker value to uppercase text
+        // Must run after FIELDS loop so data.set() correctly overrides the empty ceremony_date
+        if (!document.getElementById('ceremony_date').value) {
+            const dateInput = document.getElementById('wedding_date').value;
+            if (dateInput) {
+                const d = new Date(dateInput + 'T00:00:00');
+                const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
+                                'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+                data.set('ceremony_date', months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear());
+            }
+        }
 
         return data;
     }
@@ -683,13 +685,15 @@
         });
 
         // Sync date
-        const dateInput = document.getElementById('wedding_date').value;
-        const dlDate    = document.getElementById('dl_ceremony_date');
-        if (dateInput && !document.getElementById('ceremony_date').value && dlDate) {
-            const d = new Date(dateInput + 'T00:00:00');
-            const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
-                            'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-            dlDate.value = months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+        const dlDate = document.getElementById('dl_ceremony_date');
+        if (dlDate && !document.getElementById('ceremony_date').value) {
+            const dateInput = document.getElementById('wedding_date').value;
+            if (dateInput) {
+                const d = new Date(dateInput + 'T00:00:00');
+                const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
+                                'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+                dlDate.value = months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+            }
         }
     };
 
