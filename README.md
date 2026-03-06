@@ -56,3 +56,5 @@
 - 所有文本输入均通过 `htmlspecialchars()` 转义，防止 XSS
 - URL 字段通过 `parse_url()` 验证，仅允许 `http` / `https` 协议
 - `preview.php` 和 `download.php` 仅接受 POST 请求
+
+php -S 0.0.0.0:8000

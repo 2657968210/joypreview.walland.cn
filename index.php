@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>电子请柬编辑器</title>
+    <title>Wedding Invitation Editor</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -24,14 +24,14 @@
             background: #fff;
         }
 
-        /* ─── 双栏布局 ─── */
+        /* ─── Two-column layout ─── */
         .editor-layout {
             display: flex;
             height: 100vh;
             overflow: hidden;
         }
 
-        /* 左：预览区 */
+        /* Left: preview panel */
         .panel-preview {
             flex: 0 0 58%;
             background: var(--bg-preview);
@@ -76,7 +76,7 @@
             color: var(--accent);
         }
 
-        /* 缩放容器 */
+        /* Scale container */
         .preview-sandbox {
             flex: 1;
             position: relative;
@@ -92,7 +92,7 @@
             /* width / transform-origin set by JS */
         }
 
-        /* 加载遮罩 */
+        /* Loading overlay */
         .preview-overlay {
             position: absolute;
             inset: 0;
@@ -137,7 +137,7 @@
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ─── 右：表单区 ─── */
+        /* ─── Right: form panel ─── */
         .panel-form {
             flex: 0 0 42%;
             display: flex;
@@ -154,7 +154,7 @@
             width: 100%;
         }
 
-        /* 步骤指示 */
+        /* Step indicator */
         .step-indicator {
             font-size: 12px;
             font-weight: 600;
@@ -172,11 +172,11 @@
             color: var(--text);
         }
 
-        /* 步骤显示/隐藏 */
+        /* Step show/hide */
         .step { display: none; }
         .step.active { display: block; }
 
-        /* 进度条 */
+        /* Progress bar */
         .progress-bar {
             height: 3px;
             background: #e8e8e8;
@@ -192,7 +192,7 @@
             transition: width .4s ease;
         }
 
-        /* 表单行（两列） */
+        /* Form row (two columns) */
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -200,7 +200,7 @@
             margin-bottom: 12px;
         }
 
-        /* 浮动标签 */
+        /* Floating label */
         .form-group {
             position: relative;
             margin-bottom: 12px;
@@ -251,7 +251,7 @@
             transform: none;
         }
 
-        /* 有内容或focus时标签上浮 */
+        /* Label floats on focus or when filled */
         .form-group input:focus ~ label,
         .form-group input:not(:placeholder-shown) ~ label,
         .form-group textarea:focus ~ label,
@@ -262,7 +262,7 @@
             color: var(--accent);
         }
 
-        /* 区块标题 */
+        /* Section title */
         .section-title {
             font-size: 13px;
             font-weight: 700;
@@ -274,7 +274,7 @@
             border-bottom: 1px solid var(--border);
         }
 
-        /* 按钮 */
+        /* Buttons */
         .btn-continue {
             display: block;
             width: 100%;
@@ -339,20 +339,20 @@
             margin-top: 14px;
         }
 
-        /* 日期输入 */
+        /* Date input */
         .form-group input[type="date"] {
             color: var(--text);
             cursor: pointer;
         }
 
-        /* 分隔线 */
+        /* Divider */
         .divider {
             border: none;
             border-top: 1px solid var(--border);
             margin: 24px 0;
         }
 
-        /* ─── 响应式：移动端 ─── */
+        /* ─── Responsive: mobile ─── */
         @media (max-width: 900px) {
             .editor-layout {
                 flex-direction: column;
@@ -388,137 +388,137 @@
 <body>
 <div class="editor-layout">
 
-    <!-- ░░ 左栏：实时预览 ░░ -->
+    <!-- ░░ Left panel: live preview ░░ -->
     <div class="panel-preview">
         <div class="panel-preview-header">
-            <span>实时预览</span>
+            <span>Live Preview</span>
             <div class="preview-actions">
                 <div class="preview-loading" id="loadingSpinner"></div>
-                <a id="btnFullPreview" href="#" target="_blank">全屏预览 ↗</a>
+                <a id="btnFullPreview" href="#" target="_blank">Full Screen ↗</a>
             </div>
         </div>
 
         <div class="preview-sandbox" id="previewSandbox">
-            <!-- 占位提示（填写前显示） -->
+            <!-- Placeholder (shown before input) -->
             <div class="preview-overlay" id="previewOverlay">
                 <div class="preview-placeholder">
                     <span class="icon">💌</span>
-                    <p>填写右侧信息<br>即可在此看到请柬预览</p>
+                    <p>Fill in your details on the right<br>to see a preview of your invitation</p>
                 </div>
             </div>
-            <iframe id="previewFrame" title="请柬预览" sandbox="allow-scripts allow-same-origin"></iframe>
+            <iframe id="previewFrame" title="Invitation Preview" sandbox="allow-scripts allow-same-origin"></iframe>
         </div>
     </div>
 
-    <!-- ░░ 右栏：编辑表单 ░░ -->
+    <!-- ░░ Right panel: edit form ░░ -->
     <div class="panel-form">
         <div class="form-inner">
-            <!-- 步骤指示 -->
-            <div class="step-indicator" id="stepIndicator">第 1 步，共 2 步</div>
+            <!-- Step indicator -->
+            <div class="step-indicator" id="stepIndicator">Step 1 of 2</div>
             <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:50%"></div></div>
-            <h1 class="form-title" id="formTitle">看起来不错！来填写你们的信息</h1>
+            <h1 class="form-title" id="formTitle">Looks great! Let's add your info</h1>
 
-            <!-- ── Step 1：基本信息 ── -->
+            <!-- ── Step 1: Basic Info ── -->
             <div class="step active" id="step1">
                 <div class="form-row">
                     <div class="form-group">
                         <input type="text" id="bride_firstname" name="bride_firstname" placeholder=" " autocomplete="given-name">
-                        <label for="bride_firstname">您的名字</label>
+                        <label for="bride_firstname">Your first name</label>
                     </div>
                     <div class="form-group">
                         <input type="text" id="bride_lastname" name="bride_lastname" placeholder=" " autocomplete="family-name">
-                        <label for="bride_lastname">您的姓氏</label>
+                        <label for="bride_lastname">Your last name</label>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <input type="text" id="groom_firstname" name="groom_firstname" placeholder=" " autocomplete="off">
-                        <label for="groom_firstname">伴侣的名字</label>
+                        <label for="groom_firstname">Partner's first name</label>
                     </div>
                     <div class="form-group">
                         <input type="text" id="groom_lastname" name="groom_lastname" placeholder=" " autocomplete="off">
-                        <label for="groom_lastname">伴侣的姓氏</label>
+                        <label for="groom_lastname">Partner's last name</label>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <input type="date" id="wedding_date" name="wedding_date" placeholder=" ">
-                    <label for="wedding_date">婚礼日期</label>
+                    <label for="wedding_date">Wedding date</label>
                 </div>
 
                 <div class="form-group">
                     <input type="text" id="wedding_city" name="wedding_city" placeholder=" " autocomplete="off">
-                    <label for="wedding_city">婚礼城市（可选）</label>
+                    <label for="wedding_city">Wedding city (optional)</label>
                 </div>
 
-                <button class="btn-continue" id="btnStep1" onclick="goToStep(2)">继续</button>
-                <p class="helper-text">您随时可以回来修改这些信息</p>
+                <button class="btn-continue" id="btnStep1" onclick="goToStep(2)">Continue</button>
+                <p class="helper-text">You can easily edit this info later.</p>
             </div>
 
-            <!-- ── Step 2：仪式与详情 ── -->
+            <!-- ── Step 2: Ceremony & Details ── -->
             <div class="step" id="step2">
-                <button class="btn-back" onclick="goToStep(1)">← 返回</button>
+                <button class="btn-back" onclick="goToStep(1)">← Back</button>
 
-                <div class="section-title">婚礼仪式</div>
+                <div class="section-title">CEREMONY</div>
 
                 <div class="form-group">
                     <input type="text" id="ceremony_date" name="ceremony_date" placeholder=" " autocomplete="off">
-                    <label for="ceremony_date">仪式日期（如：MAY 10, 2026）</label>
+                    <label for="ceremony_date">Ceremony date (e.g. MAY 10, 2026)</label>
                 </div>
 
                 <div class="form-group">
                     <input type="text" id="ceremony_time" name="ceremony_time" placeholder=" " autocomplete="off">
-                    <label for="ceremony_time">仪式时间（如：4 O'CLOCK IN THE AFTERNOON）</label>
+                    <label for="ceremony_time">Ceremony time (e.g. 4 O'CLOCK IN THE AFTERNOON)</label>
                 </div>
 
                 <div class="form-group">
                     <input type="text" id="ceremony_venue" name="ceremony_venue" placeholder=" " autocomplete="off">
-                    <label for="ceremony_venue">仪式场地名称</label>
+                    <label for="ceremony_venue">Ceremony venue name</label>
                 </div>
 
                 <div class="form-group">
                     <textarea id="ceremony_addr" name="ceremony_addr" placeholder=" " rows="3"></textarea>
-                    <label for="ceremony_addr">仪式场地地址（可多行）</label>
+                    <label for="ceremony_addr">Ceremony address (multi-line)</label>
                 </div>
 
-                <div class="section-title">招待会</div>
+                <div class="section-title">RECEPTION</div>
 
                 <div class="form-group">
                     <input type="text" id="reception_time" name="reception_time" placeholder=" " autocomplete="off">
-                    <label for="reception_time">招待会时间（如：5:30 PM IN THE EVENING）</label>
+                    <label for="reception_time">Reception time (e.g. 5:30 PM IN THE EVENING)</label>
                 </div>
 
                 <div class="form-group">
                     <input type="text" id="reception_venue" name="reception_venue" placeholder=" " autocomplete="off">
-                    <label for="reception_venue">招待会场地名称</label>
+                    <label for="reception_venue">Reception venue name</label>
                 </div>
 
                 <div class="form-group">
                     <textarea id="reception_addr" name="reception_addr" placeholder=" " rows="3"></textarea>
-                    <label for="reception_addr">招待会场地地址（可多行）</label>
+                    <label for="reception_addr">Reception address (multi-line)</label>
                 </div>
 
                 <div class="form-group">
                     <input type="url" id="map_link" name="map_link" placeholder=" " autocomplete="off">
-                    <label for="map_link">地图链接（Google Maps 等，可选）</label>
+                    <label for="map_link">Map link (Google Maps, optional)</label>
                 </div>
 
-                <div class="section-title">RSVP 回复</div>
+                <div class="section-title">RSVP</div>
 
                 <div class="form-group">
                     <input type="text" id="rsvp_deadline" name="rsvp_deadline" placeholder=" " autocomplete="off">
-                    <label for="rsvp_deadline">回复截止日期（如：BY APRIL 1ST）</label>
+                    <label for="rsvp_deadline">RSVP deadline (e.g. BY APRIL 1ST)</label>
                 </div>
 
                 <div class="form-group">
                     <input type="url" id="rsvp_link" name="rsvp_link" placeholder=" " autocomplete="off">
-                    <label for="rsvp_link">RSVP 表单链接（可选）</label>
+                    <label for="rsvp_link">RSVP form link (optional)</label>
                 </div>
 
                 <hr class="divider">
 
-                <!-- 下载表单（POST 方式下载文件） -->
+                <!-- Download form (POST) -->
                 <form id="downloadForm" method="POST" action="download.php" target="_blank">
                     <input type="hidden" name="bride_firstname"  id="dl_bride_firstname">
                     <input type="hidden" name="bride_lastname"   id="dl_bride_lastname">
@@ -534,10 +534,10 @@
                     <input type="hidden" name="map_link"         id="dl_map_link">
                     <input type="hidden" name="rsvp_deadline"    id="dl_rsvp_deadline">
                     <input type="hidden" name="rsvp_link"        id="dl_rsvp_link">
-                    <button type="submit" class="btn-download" onclick="syncDownloadForm()">⬇ 下载请柬 HTML</button>
+                    <button type="submit" class="btn-download" onclick="syncDownloadForm()">⬇ Download Invitation HTML</button>
                 </form>
 
-                <p class="helper-text">下载后可直接部署到网站</p>
+                <p class="helper-text">Ready to deploy after download</p>
             </div>
         </div>
     </div>
@@ -547,7 +547,7 @@
 (function () {
     'use strict';
 
-    /* ── 表单字段列表 ── */
+    /* ── Form field list ── */
     const FIELDS = [
         'bride_firstname', 'bride_lastname',
         'groom_firstname', 'groom_lastname',
@@ -566,7 +566,7 @@
     let debounceTimer = null;
     let hasInput      = false;
 
-    /* ── iframe 缩放 ── */
+    /* ── iframe scaling ── */
     function scalePreview() {
         const panelW = previewSandbox.offsetWidth;
         const panelH = previewSandbox.offsetHeight;
@@ -585,11 +585,11 @@
     window.addEventListener('resize', scalePreview);
     scalePreview();
 
-    /* ── 收集当前表单数据 ── */
+    /* ── Collect form data ── */
     function collectData() {
         const data = new FormData();
 
-        // 从日期输入格式化为大写文字
+        // Format date picker value to uppercase text
         const dateInput = document.getElementById('wedding_date').value;
         if (dateInput && !document.getElementById('ceremony_date').value) {
             const d = new Date(dateInput + 'T00:00:00');
@@ -607,7 +607,7 @@
         return data;
     }
 
-    /* ── 触发预览更新 ── */
+    /* ── Trigger preview update ── */
     function schedulePreview() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(updatePreview, 600);
@@ -628,10 +628,10 @@
             const html = await resp.text();
             previewFrame.srcdoc = html;
 
-            // 隐藏占位提示
+            // Hide placeholder overlay
             previewOverlay.classList.add('hidden');
 
-            // 更新全屏预览链接（用 Blob URL）
+            // Update full-screen preview link (Blob URL)
             const blob = new Blob([html], { type: 'text/html' });
             const old = btnFullPreview._blobUrl;
             if (old) URL.revokeObjectURL(old);
@@ -645,36 +645,36 @@
         }
     }
 
-    /* ── 监听所有字段 ── */
+    /* ── Listen to all fields ── */
     FIELDS.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', schedulePreview);
     });
 
-    // 日期选择器
+    // Date picker
     document.getElementById('wedding_date').addEventListener('change', schedulePreview);
 
-    /* ── 步骤切换 ── */
+    /* ── Step navigation ── */
     window.goToStep = function (n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         document.getElementById('step' + n).classList.add('active');
 
         const total = 2;
-        document.getElementById('stepIndicator').textContent = `第 ${n} 步，共 ${total} 步`;
+        document.getElementById('stepIndicator').textContent = `Step ${n} of ${total}`;
         document.getElementById('progressFill').style.width  = (n / total * 100) + '%';
 
         const titles = {
-            1: '看起来不错！来填写你们的信息',
-            2: '完善仪式与 RSVP 详情'
+            1: "Looks great! Let's add your info",
+            2: 'Add ceremony & RSVP details'
         };
         document.getElementById('formTitle').textContent = titles[n] || '';
         document.querySelector('.panel-form').scrollTop = 0;
 
-        // 进入第2步时触发第一次预览
+        // Trigger first preview on entering step 2
         if (n === 2 && !hasInput) updatePreview();
     };
 
-    /* ── 同步下载表单隐藏字段 ── */
+    /* ── Sync hidden download form fields ── */
     window.syncDownloadForm = function () {
         FIELDS.forEach(id => {
             const src = document.getElementById(id);
@@ -682,7 +682,7 @@
             if (src && dst) dst.value = src.value;
         });
 
-        // 同步日期
+        // Sync date
         const dateInput = document.getElementById('wedding_date').value;
         const dlDate    = document.getElementById('dl_ceremony_date');
         if (dateInput && !document.getElementById('ceremony_date').value && dlDate) {
@@ -693,7 +693,7 @@
         }
     };
 
-    // 初始化缩放
+    // Init scaling
     setTimeout(scalePreview, 100);
 })();
 </script>

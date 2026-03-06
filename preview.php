@@ -1,6 +1,6 @@
 <?php
 /**
- * preview.php — 接收 POST 表单数据，返回渲染后的请柬 HTML
+ * preview.php — Accepts POST form data and returns rendered invitation HTML
  */
 header('Content-Type: text/html; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -11,14 +11,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit('Method Not Allowed');
 }
 
-/* ---- 辅助函数 ---- */
+/* ---- Helper functions ---- */
 
 function h(string $s): string {
     return htmlspecialchars(trim($s), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
 function format_text(string $s): string {
-    // HTML 转义后将换行转为 <br>
+    // Escape HTML, then convert newlines to <br>
     return nl2br(h($s));
 }
 
@@ -32,7 +32,7 @@ function safe_url(string $url, string $fallback = '#'): string {
     return htmlspecialchars($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
-/* ---- 读取并清洗输入 ---- */
+/* ---- Read and sanitize input ---- */
 
 $bride_firstname = h($_POST['bride_firstname'] ?? 'Olivia');
 $bride_lastname  = h($_POST['bride_lastname']  ?? '');
@@ -49,7 +49,7 @@ $rsvp_deadline   = h($_POST['rsvp_deadline']   ?? 'BY APRIL 1ST');
 $rsvp_link       = safe_url($_POST['rsvp_link'] ?? '', 'https://forms.gle/');
 $map_link        = safe_url($_POST['map_link']  ?? '', '#');
 
-/* ---- 组合字段 ---- */
+/* ---- Combine fields ---- */
 
 $bride_full  = trim($bride_firstname . ($bride_lastname  ? ' ' . $bride_lastname  : ''));
 $groom_full  = trim($groom_firstname . ($groom_lastname  ? ' ' . $groom_lastname  : ''));
@@ -57,13 +57,13 @@ $couple_names = ($bride_full && $groom_full)
     ? "$bride_full &amp; $groom_full"
     : ($bride_full ?: ($groom_full ?: 'Your Wedding'));
 
-// 场地 HTML：名称 + 地址（地址支持多行）
+// Venue HTML: name + address (address supports multi-line)
 $ceremony_venue_html  = $ceremony_venue . ($ceremony_addr !== ''
     ? '<br>' . format_text($ceremony_addr) : '');
 $reception_venue_html = $reception_venue . ($reception_addr !== ''
     ? '<br>' . format_text($reception_addr) : '');
 
-/* ---- 加载模板 ---- */
+/* ---- Load template ---- */
 
 $tpl_path = __DIR__ . '/template/20260226.tpl.html';
 if (!is_readable($tpl_path)) {
@@ -72,7 +72,7 @@ if (!is_readable($tpl_path)) {
 }
 $html = file_get_contents($tpl_path);
 
-/* ---- 替换占位符 ---- */
+/* ---- Replace placeholders ---- */
 
 $replacements = [
     '{{COUPLE_NAMES}}'         => $couple_names,
