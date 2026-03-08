@@ -1,7 +1,14 @@
 <?php
-// 已迁移至 api/render.php
-require __DIR__ . '/api/render.php';
-
+/**
+ * api/render.php — Data-driven invitation renderer.
+ *
+ * Reads a JSON schema that declares form fields and placeholder rules,
+ * then applies POST data to the corresponding .tpl.html file.
+ *
+ * Usage:
+ *   require_once __DIR__ . '/render.php';
+ *   $html = render_invitation(dirname(__DIR__) . '/template/20260226.json', $_POST);
+ */
 
 /* ---- Internal helpers (prefixed to avoid global collisions) ---- */
 

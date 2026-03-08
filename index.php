@@ -83,59 +83,13 @@
             overflow: hidden;
         }
 
-        #previewFrame {
-            position: absolute;
-            top: 0;
-            left: 0;
-            border: none;
+        #previewImg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
             display: block;
-            /* width / transform-origin set by JS */
         }
-
-        /* Loading overlay */
-        .preview-overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-preview);
-            z-index: 5;
-            transition: opacity .3s;
-        }
-
-        .preview-overlay.hidden { opacity: 0; pointer-events: none; }
-
-        .preview-placeholder {
-            text-align: center;
-            color: #999;
-        }
-
-        .preview-placeholder .icon {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 16px;
-            opacity: .4;
-        }
-
-        .preview-placeholder p {
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .preview-loading {
-            display: none;
-            width: 32px;
-            height: 32px;
-            border: 3px solid #ddd;
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin .7s linear infinite;
-        }
-
-        .preview-loading.active { display: block; }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ─── Right: form panel ─── */
         .panel-form {
@@ -393,20 +347,12 @@
         <div class="panel-preview-header">
             <span>Live Preview</span>
             <div class="preview-actions">
-                <div class="preview-loading" id="loadingSpinner"></div>
-                <a id="btnFullPreview" href="#" target="_blank">Full Screen ↗</a>
+                <a href="template/20260226.jpg" target="_blank">Full Screen ↗</a>
             </div>
         </div>
 
-        <div class="preview-sandbox" id="previewSandbox">
-            <!-- Placeholder (shown before input) -->
-            <div class="preview-overlay" id="previewOverlay">
-                <div class="preview-placeholder">
-                    <span class="icon">💌</span>
-                    <p>Fill in your details on the right<br>to see a preview of your invitation</p>
-                </div>
-            </div>
-            <iframe id="previewFrame" title="Invitation Preview" sandbox="allow-scripts allow-same-origin"></iframe>
+        <div class="preview-sandbox">
+            <img id="previewImg" src="template/20260226.jpg" alt="Invitation Preview">
         </div>
     </div>
 
@@ -519,7 +465,7 @@
                 <hr class="divider">
 
                 <!-- Download form (POST) -->
-                <form id="downloadForm" method="POST" action="download.php" target="_blank">
+                <form id="downloadForm" method="POST" action="api/download.php" target="_blank">
                     <input type="hidden" name="bride_firstname"  id="dl_bride_firstname">
                     <input type="hidden" name="bride_lastname"   id="dl_bride_lastname">
                     <input type="hidden" name="groom_firstname"  id="dl_groom_firstname">
@@ -547,7 +493,6 @@
 (function () {
     'use strict';
 
-    /* ── Form field list ── */
     const FIELDS = [
         'bride_firstname', 'bride_lastname',
         'groom_firstname', 'groom_lastname',
@@ -557,106 +502,6 @@
         'map_link', 'rsvp_deadline', 'rsvp_link'
     ];
 
-    const previewFrame   = document.getElementById('previewFrame');
-    const previewSandbox = document.getElementById('previewSandbox');
-    const previewOverlay = document.getElementById('previewOverlay');
-    const loadingSpinner = document.getElementById('loadingSpinner');
-    const btnFullPreview = document.getElementById('btnFullPreview');
-
-    let debounceTimer = null;
-    let hasInput      = false;
-
-    /* ── iframe scaling ── */
-    function scalePreview() {
-        const panelW = previewSandbox.offsetWidth;
-        const panelH = previewSandbox.offsetHeight;
-        if (!panelW) return;
-
-        const TEMPLATE_W = 1920;
-        const scale = panelW / TEMPLATE_W;
-        const frameH = Math.ceil(panelH / scale);
-
-        previewFrame.style.width          = TEMPLATE_W + 'px';
-        previewFrame.style.height         = frameH + 'px';
-        previewFrame.style.transform      = `scale(${scale})`;
-        previewFrame.style.transformOrigin = 'top left';
-    }
-
-    window.addEventListener('resize', scalePreview);
-    scalePreview();
-
-    /* ── Collect form data ── */
-    function collectData() {
-        const data = new FormData();
-
-        FIELDS.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) data.append(id, el.value);
-        });
-
-        // Format date picker value to uppercase text
-        // Must run after FIELDS loop so data.set() correctly overrides the empty ceremony_date
-        if (!document.getElementById('ceremony_date').value) {
-            const dateInput = document.getElementById('wedding_date').value;
-            if (dateInput) {
-                const d = new Date(dateInput + 'T00:00:00');
-                const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
-                                'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-                data.set('ceremony_date', months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear());
-            }
-        }
-
-        return data;
-    }
-
-    /* ── Trigger preview update ── */
-    function schedulePreview() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(updatePreview, 600);
-    }
-
-    async function updatePreview() {
-        hasInput = true;
-        loadingSpinner.classList.add('active');
-
-        try {
-            const resp = await fetch('preview.php', {
-                method: 'POST',
-                body: collectData()
-            });
-
-            if (!resp.ok) throw new Error('preview failed');
-
-            const html = await resp.text();
-            previewFrame.srcdoc = html;
-
-            // Hide placeholder overlay
-            previewOverlay.classList.add('hidden');
-
-            // Update full-screen preview link (Blob URL)
-            const blob = new Blob([html], { type: 'text/html' });
-            const old = btnFullPreview._blobUrl;
-            if (old) URL.revokeObjectURL(old);
-            btnFullPreview._blobUrl = URL.createObjectURL(blob);
-            btnFullPreview.href = btnFullPreview._blobUrl;
-
-        } catch (e) {
-            console.error('Preview error:', e);
-        } finally {
-            loadingSpinner.classList.remove('active');
-        }
-    }
-
-    /* ── Listen to all fields ── */
-    FIELDS.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('input', schedulePreview);
-    });
-
-    // Date picker
-    document.getElementById('wedding_date').addEventListener('change', schedulePreview);
-
-    /* ── Step navigation ── */
     window.goToStep = function (n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         document.getElementById('step' + n).classList.add('active');
@@ -671,12 +516,8 @@
         };
         document.getElementById('formTitle').textContent = titles[n] || '';
         document.querySelector('.panel-form').scrollTop = 0;
-
-        // Trigger first preview on entering step 2
-        if (n === 2 && !hasInput) updatePreview();
     };
 
-    /* ── Sync hidden download form fields ── */
     window.syncDownloadForm = function () {
         FIELDS.forEach(id => {
             const src = document.getElementById(id);
@@ -684,7 +525,6 @@
             if (src && dst) dst.value = src.value;
         });
 
-        // Sync date
         const dlDate = document.getElementById('dl_ceremony_date');
         if (dlDate && !document.getElementById('ceremony_date').value) {
             const dateInput = document.getElementById('wedding_date').value;
@@ -696,9 +536,6 @@
             }
         }
     };
-
-    // Init scaling
-    setTimeout(scalePreview, 100);
 })();
 </script>
 </body>

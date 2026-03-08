@@ -1,24 +1,33 @@
 # joypreview.walland.cn
 
-电子请柬在线编辑器，支持实时预览、自定义婚礼信息并下载定制后的 HTML 请柬。
+电子请柬在线编辑器，支持预览模板、自定义婚礼信息并下载定制后的 HTML 请柬。
 
 ## 项目结构
 
 ```
 ├── index.php                   # 编辑器主界面（双栏布局，2步表单）
-├── preview.php                 # 后端：接收 POST 数据，返回渲染后的请柬 HTML
-├── download.php                # 后端：接收 POST 数据，触发 HTML 文件下载
+├── api/
+│   ├── render.php              # 核心渲染引擎：读取 JSON schema，替换模板占位符
+│   ├── preview.php             # 接收 POST，返回渲染后的请柬 HTML（供调试/扩展用）
+│   ├── download.php            # 接收 POST，触发定制化 HTML 文件下载
+│   └── thumbnail.php           # 生成模板 JPG 预览图（依赖 wkhtmltoimage）
+├── download.php                # → 转发至 api/download.php（兼容旧链接）
+├── preview.php                 # → 转发至 api/preview.php
+├── render.php                  # → 转发至 api/render.php
+├── thumbnail.php               # → 转发至 api/thumbnail.php
 └── template/
-    ├── 20260226.html           # 原始模板（保留备份，勿直接修改）
-    └── 20260226.tpl.html       # 带 {{占位符}} 的模板（供 PHP 渲染替换）
+    ├── 20260226.html           # 原始模板（参考备份，勿修改）
+    ├── 20260226.tpl.html       # 带 {{占位符}} 的渲染模板
+    ├── 20260226.json           # 表单字段与占位符规则 schema
+    └── 20260226.jpg            # 生成的 JPG 预览图（运行时产物，不纳入 Git）
 ```
 
 ## 功能
 
-- **双栏布局**：左侧实时预览请柬效果，右侧填写信息表单
+- **双栏布局**：左侧展示模板预览图，右侧填写信息表单
 - **分步引导**：2步完成信息填写（基本信息 → 仪式与 RSVP 详情）
-- **实时预览**：每次输入后防抖 600ms 自动刷新预览，支持全屏预览
 - **一键下载**：下载填写完毕、可直接部署的 HTML 请柬文件
+- **预览图生成**：通过 `thumbnail.php` 使用 wkhtmltoimage 将模板渲染为 JPG
 
 ## 可编辑字段
 
@@ -44,17 +53,23 @@
 ## 部署
 
 1. 将项目文件上传至支持 PHP 7.4+ 的 Web 服务器
-2. 确保字体文件已部署至服务器的 `/fonts/` 目录（或修改模板中的字体路径为 CDN 绝对 URL）：
-   - `ITCEDSCR.TTF`
-   - `Aegean.ttf`
-   - `trajan.ttf`
-   - `TrajanPro-Bold.otf`
-3. 访问 `index.php` 即可使用编辑器
+2. 安装 wkhtmltoimage（用于生成预览图）：
+   ```bash
+   sudo apt-get install -y wkhtmltopdf
+   ```
+3. 确保字体文件已部署至服务器的 `/fonts/` 目录（或修改模板中的字体路径为 CDN 绝对 URL）：
+   - `ITCEDSCR.TTF`、`Aegean.ttf`、`trajan.ttf`、`TrajanPro-Bold.otf`
+4. 访问 `thumbnail.php` 生成预览图，再访问 `index.php` 使用编辑器
+
+## 本地开发
+
+```bash
+php -S 0.0.0.0:8000
+```
 
 ## 安全说明
 
 - 所有文本输入均通过 `htmlspecialchars()` 转义，防止 XSS
 - URL 字段通过 `parse_url()` 验证，仅允许 `http` / `https` 协议
-- `preview.php` 和 `download.php` 仅接受 POST 请求
-
-php -S 0.0.0.0:8000
+- `download.php` 仅接受 POST 请求
+- `thumbnail.php` 所有命令参数均为常量，无用户输入注入风险

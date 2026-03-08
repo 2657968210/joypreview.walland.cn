@@ -1,19 +1,23 @@
 <?php
-// 已迁移至 api/thumbnail.php
-require __DIR__ . '/api/thumbnail.php';
+/**
+ * api/thumbnail.php — 读取 template/20260226.html，生成 JPG 预览图
+ *
+ * 访问方式：
+ *   GET /api/thumbnail.php              直接输出 JPEG 图片
+ *   GET /api/thumbnail.php?refresh=1   强制重新生成（忽略缓存）
+ */
 
+declare(strict_types=1);
 
 // ── 路径配置 ──────────────────────────────────────────────────
-$htmlFile  = __DIR__ . '/template/20260226.html';
-$outputDir = __DIR__ . '/template';
+$root      = dirname(__DIR__);
+$htmlFile  = $root . '/template/20260226.html';
+$outputDir = $root . '/template';
 $outFile   = $outputDir . '/20260226.jpg';
 
-// wkhtmltoimage 可执行路径（通过 which 确认为 /usr/bin/wkhtmltoimage）
-$binary = '/usr/bin/wkhtmltoimage';
-
-// 预览宽度（px）；高度自适应
-$width = 1920;
-// JPEG 质量 1-100
+// wkhtmltoimage 可执行路径
+$binary  = '/usr/bin/wkhtmltoimage';
+$width   = 1920;
 $quality = 88;
 
 // ── 安全：确认 HTML 文件存在 ──────────────────────────────────
@@ -22,17 +26,17 @@ if (!is_file($htmlFile)) {
     exit('Template file not found.');
 }
 
-// ── 创建缓存目录（template 已存在，此处仅作兜底） ──────────────
+// ── 创建输出目录（template 已存在，此处仅作兜底） ──────────────
 if (!is_dir($outputDir)) {
     if (!mkdir($outputDir, 0750, true)) {
         http_response_code(500);
-        exit('Cannot create cache directory.');
+        exit('Cannot create output directory.');
     }
 }
 
 // ── 判断是否需要重新生成 ──────────────────────────────────────
-$refresh    = isset($_GET['refresh']);
-$needRegen  = $refresh
+$refresh   = isset($_GET['refresh']);
+$needRegen = $refresh
     || !is_file($outFile)
     || filemtime($htmlFile) > filemtime($outFile);
 
