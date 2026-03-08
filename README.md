@@ -11,10 +11,6 @@
 │   ├── preview.php             # 接收 POST，返回渲染后的请柬 HTML（供调试/扩展用）
 │   ├── download.php            # 接收 POST，触发定制化 HTML 文件下载
 │   └── thumbnail.php           # 生成模板 JPG 预览图（依赖 wkhtmltoimage）
-├── download.php                # → 转发至 api/download.php（兼容旧链接）
-├── preview.php                 # → 转发至 api/preview.php
-├── render.php                  # → 转发至 api/render.php
-├── thumbnail.php               # → 转发至 api/thumbnail.php
 └── template/
     ├── 20260226.html           # 原始模板（参考备份，勿修改）
     ├── 20260226.tpl.html       # 带 {{占位符}} 的渲染模板
@@ -27,7 +23,7 @@
 - **双栏布局**：左侧展示模板预览图，右侧填写信息表单
 - **分步引导**：2步完成信息填写（基本信息 → 仪式与 RSVP 详情）
 - **一键下载**：下载填写完毕、可直接部署的 HTML 请柬文件
-- **预览图生成**：通过 `thumbnail.php` 使用 wkhtmltoimage 将模板渲染为 JPG
+- **预览图生成**：通过 `api/thumbnail.php` 使用 wkhtmltoimage 将模板渲染为 JPG
 
 ## 可编辑字段
 
@@ -59,7 +55,7 @@
    ```
 3. 确保字体文件已部署至服务器的 `/fonts/` 目录（或修改模板中的字体路径为 CDN 绝对 URL）：
    - `ITCEDSCR.TTF`、`Aegean.ttf`、`trajan.ttf`、`TrajanPro-Bold.otf`
-4. 访问 `thumbnail.php` 生成预览图，再访问 `index.php` 使用编辑器
+4. 访问 `api/thumbnail.php` 生成预览图，再访问 `index.php` 使用编辑器
 
 ## 本地开发
 
@@ -71,5 +67,5 @@ php -S 0.0.0.0:8000
 
 - 所有文本输入均通过 `htmlspecialchars()` 转义，防止 XSS
 - URL 字段通过 `parse_url()` 验证，仅允许 `http` / `https` 协议
-- `download.php` 仅接受 POST 请求
-- `thumbnail.php` 所有命令参数均为常量，无用户输入注入风险
+- `api/download.php` 仅接受 POST 请求
+- `api/thumbnail.php` 所有命令参数均为常量，无用户输入注入风险
