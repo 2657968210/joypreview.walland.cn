@@ -56,14 +56,16 @@ function render_invitation(string $schema_path, array $post): string
 
     /* ---- Collect raw input for every declared field ---- */
     $data = [];
-    foreach ($schema['form_fields'] as $f) {
+    foreach ($schema['fields'] as $f) {
         $data[$f['id']] = trim($post[$f['id']] ?? '');
     }
 
     /* ---- Build placeholder → value map via rule engine ---- */
     $replacements = [];
 
-    foreach ($schema['placeholders'] as $ph) {
+    foreach ($schema['fields'] as $f) {
+        if (!isset($f['placeholder'])) continue;
+        $ph = $f['placeholder'];
         $key     = $ph['key'];
         $default = $ph['default'] ?? '';
 

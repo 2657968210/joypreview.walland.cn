@@ -1,18 +1,26 @@
 <?php
 $schema     = json_decode(file_get_contents(__DIR__ . '/template/20260226.json'), true);
-$steps_meta = array_column($schema['meta']['steps'], null, 'id');
+
+// Derive step titles from the first field of each step
+$steps_meta = [];
+foreach ($schema['fields'] as $f) {
+    $s = $f['step'];
+    if (!isset($steps_meta[$s])) {
+        $steps_meta[$s] = ['id' => $s, 'title' => $f['step_title'] ?? 'Step ' . $s];
+    }
+}
 $total_steps = count($steps_meta);
 
 // Group fields: step → section → []
 $by_step = [];
-foreach ($schema['form_fields'] as $f) {
+foreach ($schema['fields'] as $f) {
     $by_step[$f['step']][$f['section'] ?? ''][] = $f;
 }
 
 // Field IDs sent to download form (exclude download:false)
 $download_ids = array_values(array_map(
     fn($f) => $f['id'],
-    array_filter($schema['form_fields'], fn($f) => ($f['download'] ?? true) !== false)
+    array_filter($schema['fields'], fn($f) => ($f['download'] ?? true) !== false)
 ));
 
 function field_html(array $f): string {
