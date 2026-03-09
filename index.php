@@ -1,3 +1,58 @@
+<?php
+$schema     = json_decode(file_get_contents(__DIR__ . '/template/20260226.json'), true);
+$steps_meta = array_column($schema['meta']['steps'], null, 'id');
+$total_steps = count($steps_meta);
+
+// Group fields: step → section → []
+$by_step = [];
+foreach ($schema['form_fields'] as $f) {
+    $by_step[$f['step']][$f['section'] ?? ''][] = $f;
+}
+
+// Field IDs sent to download form (exclude download:false)
+$download_ids = array_values(array_map(
+    fn($f) => $f['id'],
+    array_filter($schema['form_fields'], fn($f) => ($f['download'] ?? true) !== false)
+));
+
+function field_html(array $f): string {
+    $id  = htmlspecialchars($f['id'], ENT_QUOTES);
+    $lbl = htmlspecialchars($f['label']);
+    $t   = $f['type'] ?? 'text';
+    $ac  = htmlspecialchars($f['autocomplete'] ?? 'off', ENT_QUOTES);
+    if ($t === 'textarea') {
+        $ctrl = "<textarea id=\"{$id}\" name=\"{$id}\" placeholder=\" \" rows=\"3\"></textarea>";
+    } else {
+        $ctrl = "<input type=\"{$t}\" id=\"{$id}\" name=\"{$id}\" placeholder=\" \" autocomplete=\"{$ac}\">";
+    }
+    return "<div class=\"form-group\">{$ctrl}<label for=\"{$id}\">{$lbl}</label></div>\n";
+}
+
+function render_fields(array $fields): string {
+    $out = '';
+    $n   = count($fields);
+    $i   = 0;
+    while ($i < $n) {
+        $row_id = $fields[$i]['row'] ?? null;
+        if ($row_id !== null) {
+            $group = [];
+            while ($i < $n && ($fields[$i]['row'] ?? null) === $row_id) {
+                $group[] = $fields[$i++];
+            }
+            if (count($group) > 1) {
+                $out .= '<div class="form-row">';
+                foreach ($group as $gf) $out .= field_html($gf);
+                $out .= "</div>\n";
+            } else {
+                $out .= field_html($group[0]);
+            }
+        } else {
+            $out .= field_html($fields[$i++]);
+        }
+    }
+    return $out;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -360,131 +415,41 @@
     <div class="panel-form">
         <div class="form-inner">
             <!-- Step indicator -->
-            <div class="step-indicator" id="stepIndicator">Step 1 of 2</div>
-            <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:50%"></div></div>
-            <h1 class="form-title" id="formTitle">Looks great! Let's add your info</h1>
+            <div class="step-indicator" id="stepIndicator">Step 1 of <?= $total_steps ?></div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:<?= round(1 / $total_steps * 100) ?>%"></div></div>
+            <h1 class="form-title" id="formTitle"><?= htmlspecialchars($steps_meta[1]['title']) ?></h1>
 
-            <!-- ── Step 1: Basic Info ── -->
-            <div class="step active" id="step1">
-                <div class="form-row">
-                    <div class="form-group">
-                        <input type="text" id="bride_firstname" name="bride_firstname" placeholder=" " autocomplete="given-name">
-                        <label for="bride_firstname">Your first name</label>
-                    </div>
-                    <div class="form-group">
-                        <input type="text" id="bride_lastname" name="bride_lastname" placeholder=" " autocomplete="family-name">
-                        <label for="bride_lastname">Your last name</label>
-                    </div>
-                </div>
+            <?php foreach ($by_step as $step_id => $sections):
+                $is_first = $step_id === array_key_first($by_step);
+                $is_last  = $step_id === array_key_last($by_step);
+            ?>
+            <div class="step <?= $is_first ? 'active' : '' ?>" id="step<?= $step_id ?>">
+                <?php if (!$is_first): ?>
+                <button class="btn-back" onclick="goToStep(<?= $step_id - 1 ?>)">← Back</button>
+                <?php endif; ?>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <input type="text" id="groom_firstname" name="groom_firstname" placeholder=" " autocomplete="off">
-                        <label for="groom_firstname">Partner's first name</label>
-                    </div>
-                    <div class="form-group">
-                        <input type="text" id="groom_lastname" name="groom_lastname" placeholder=" " autocomplete="off">
-                        <label for="groom_lastname">Partner's last name</label>
-                    </div>
-                </div>
+                <?php foreach ($sections as $section_name => $section_fields):
+                    if ($section_name !== ''): ?>
+                <div class="section-title"><?= htmlspecialchars($section_name) ?></div>
+                    <?php endif; ?>
+                <?= render_fields($section_fields) ?>
+                <?php endforeach; ?>
 
-                <div class="form-group">
-                    <input type="date" id="wedding_date" name="wedding_date" placeholder=" ">
-                    <label for="wedding_date">Wedding date</label>
-                </div>
-
-                <div class="form-group">
-                    <input type="text" id="wedding_city" name="wedding_city" placeholder=" " autocomplete="off">
-                    <label for="wedding_city">Wedding city (optional)</label>
-                </div>
-
-                <button class="btn-continue" id="btnStep1" onclick="goToStep(2)">Continue</button>
+                <?php if ($is_first): ?>
+                <button class="btn-continue" id="btnStep1" onclick="goToStep(<?= $step_id + 1 ?>)">Continue</button>
                 <p class="helper-text">You can easily edit this info later.</p>
-            </div>
-
-            <!-- ── Step 2: Ceremony & Details ── -->
-            <div class="step" id="step2">
-                <button class="btn-back" onclick="goToStep(1)">← Back</button>
-
-                <div class="section-title">CEREMONY</div>
-
-                <div class="form-group">
-                    <input type="text" id="ceremony_date" name="ceremony_date" placeholder=" " autocomplete="off">
-                    <label for="ceremony_date">Ceremony date (e.g. MAY 10, 2026)</label>
-                </div>
-
-                <div class="form-group">
-                    <input type="text" id="ceremony_time" name="ceremony_time" placeholder=" " autocomplete="off">
-                    <label for="ceremony_time">Ceremony time (e.g. 4 O'CLOCK IN THE AFTERNOON)</label>
-                </div>
-
-                <div class="form-group">
-                    <input type="text" id="ceremony_venue" name="ceremony_venue" placeholder=" " autocomplete="off">
-                    <label for="ceremony_venue">Ceremony venue name</label>
-                </div>
-
-                <div class="form-group">
-                    <textarea id="ceremony_addr" name="ceremony_addr" placeholder=" " rows="3"></textarea>
-                    <label for="ceremony_addr">Ceremony address (multi-line)</label>
-                </div>
-
-                <div class="section-title">RECEPTION</div>
-
-                <div class="form-group">
-                    <input type="text" id="reception_time" name="reception_time" placeholder=" " autocomplete="off">
-                    <label for="reception_time">Reception time (e.g. 5:30 PM IN THE EVENING)</label>
-                </div>
-
-                <div class="form-group">
-                    <input type="text" id="reception_venue" name="reception_venue" placeholder=" " autocomplete="off">
-                    <label for="reception_venue">Reception venue name</label>
-                </div>
-
-                <div class="form-group">
-                    <textarea id="reception_addr" name="reception_addr" placeholder=" " rows="3"></textarea>
-                    <label for="reception_addr">Reception address (multi-line)</label>
-                </div>
-
-                <div class="form-group">
-                    <input type="url" id="map_link" name="map_link" placeholder=" " autocomplete="off">
-                    <label for="map_link">Map link (Google Maps, optional)</label>
-                </div>
-
-                <div class="section-title">RSVP</div>
-
-                <div class="form-group">
-                    <input type="text" id="rsvp_deadline" name="rsvp_deadline" placeholder=" " autocomplete="off">
-                    <label for="rsvp_deadline">RSVP deadline (e.g. BY APRIL 1ST)</label>
-                </div>
-
-                <div class="form-group">
-                    <input type="url" id="rsvp_link" name="rsvp_link" placeholder=" " autocomplete="off">
-                    <label for="rsvp_link">RSVP form link (optional)</label>
-                </div>
-
+                <?php elseif ($is_last): ?>
                 <hr class="divider">
-
-                <!-- Download form (POST) -->
                 <form id="downloadForm" method="POST" action="api/download.php" target="_blank">
-                    <input type="hidden" name="bride_firstname"  id="dl_bride_firstname">
-                    <input type="hidden" name="bride_lastname"   id="dl_bride_lastname">
-                    <input type="hidden" name="groom_firstname"  id="dl_groom_firstname">
-                    <input type="hidden" name="groom_lastname"   id="dl_groom_lastname">
-                    <input type="hidden" name="ceremony_date"    id="dl_ceremony_date">
-                    <input type="hidden" name="ceremony_time"    id="dl_ceremony_time">
-                    <input type="hidden" name="ceremony_venue"   id="dl_ceremony_venue">
-                    <input type="hidden" name="ceremony_addr"    id="dl_ceremony_addr">
-                    <input type="hidden" name="reception_time"   id="dl_reception_time">
-                    <input type="hidden" name="reception_venue"  id="dl_reception_venue">
-                    <input type="hidden" name="reception_addr"   id="dl_reception_addr">
-                    <input type="hidden" name="map_link"         id="dl_map_link">
-                    <input type="hidden" name="rsvp_deadline"    id="dl_rsvp_deadline">
-                    <input type="hidden" name="rsvp_link"        id="dl_rsvp_link">
+                    <?php foreach ($download_ids as $did): ?>
+                    <input type="hidden" name="<?= htmlspecialchars($did, ENT_QUOTES) ?>" id="dl_<?= htmlspecialchars($did, ENT_QUOTES) ?>">
+                    <?php endforeach; ?>
                     <button type="submit" class="btn-download" onclick="syncDownloadForm()">⬇ Download Invitation HTML</button>
                 </form>
-
                 <p class="helper-text">Ready to deploy after download</p>
+                <?php endif; ?>
             </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </div>
@@ -493,28 +458,17 @@
 (function () {
     'use strict';
 
-    const FIELDS = [
-        'bride_firstname', 'bride_lastname',
-        'groom_firstname', 'groom_lastname',
-        'ceremony_date', 'ceremony_time',
-        'ceremony_venue', 'ceremony_addr',
-        'reception_time', 'reception_venue', 'reception_addr',
-        'map_link', 'rsvp_deadline', 'rsvp_link'
-    ];
+    const FIELDS  = <?= json_encode($download_ids) ?>;
+    const TOTAL   = <?= $total_steps ?>;
+    const TITLES  = <?= json_encode(array_column($schema['meta']['steps'], 'title', 'id')) ?>;
 
     window.goToStep = function (n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
         document.getElementById('step' + n).classList.add('active');
 
-        const total = 2;
-        document.getElementById('stepIndicator').textContent = `Step ${n} of ${total}`;
-        document.getElementById('progressFill').style.width  = (n / total * 100) + '%';
-
-        const titles = {
-            1: "Looks great! Let's add your info",
-            2: 'Add ceremony & RSVP details'
-        };
-        document.getElementById('formTitle').textContent = titles[n] || '';
+        document.getElementById('stepIndicator').textContent = `Step ${n} of ${TOTAL}`;
+        document.getElementById('progressFill').style.width  = (n / TOTAL * 100) + '%';
+        document.getElementById('formTitle').textContent = TITLES[n] || '';
         document.querySelector('.panel-form').scrollTop = 0;
     };
 
