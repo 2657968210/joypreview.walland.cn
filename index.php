@@ -158,11 +158,10 @@ function render_fields(array $fields): string {
             overflow: hidden;
         }
 
-        #previewImg {
+        #previewFrame {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            object-position: top center;
+            border: none;
             display: block;
         }
 
@@ -450,12 +449,12 @@ function render_fields(array $fields): string {
         <div class="panel-preview-header">
             <span>Live Preview</span>
             <div class="preview-actions">
-                <a href="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.jpg" target="_blank">Full Screen ↗</a>
+                <a href="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.html" target="_blank">Full Screen ↗</a>
             </div>
         </div>
 
         <div class="preview-sandbox">
-            <img id="previewImg" src="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.jpg" alt="Invitation Preview">
+            <iframe id="previewFrame" src="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.html" title="Invitation Preview"></iframe>
         </div>
     </div>
 
@@ -512,9 +511,10 @@ function render_fields(array $fields): string {
 (function () {
     'use strict';
 
-    const FIELDS  = <?= json_encode($download_ids) ?>;
-    const TOTAL   = <?= $total_steps ?>;
-    const TITLES  = <?= json_encode(array_map(fn($s) => $s['title'], $steps_meta)) ?>;
+    const FIELDS      = <?= json_encode($download_ids) ?>;
+    const TOTAL       = <?= $total_steps ?>;
+    const TITLES      = <?= json_encode(array_map(fn($s) => $s['title'], $steps_meta)) ?>;
+    const TEMPLATE_ID = <?= json_encode($template_id) ?>;
 
     window.goToStep = function (n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -533,6 +533,37 @@ function render_fields(array $fields): string {
             if (src && dst) dst.value = src.value;
         });
     };
+
+    /* ── Live preview ── */
+    function debounce(fn, ms) {
+        let t;
+        return function () { clearTimeout(t); t = setTimeout(() => fn.apply(this, arguments), ms); };
+    }
+
+    function updatePreview() {
+        const fd = new FormData();
+        fd.append('template', TEMPLATE_ID);
+        FIELDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) fd.append(id, el.value);
+        });
+        const base = location.origin + '/template/' + TEMPLATE_ID + '/';
+        fetch('api/preview.php', { method: 'POST', body: fd })
+            .then(r => r.text())
+            .then(html => {
+                // Inject <base> so relative paths in the template resolve correctly
+                html = html.replace(/(<head[^>]*>)/i, '$1<base href="' + base + '">');
+                document.getElementById('previewFrame').srcdoc = html;
+            })
+            .catch(() => {});
+    }
+
+    const debouncedPreview = debounce(updatePreview, 350);
+
+    FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', debouncedPreview);
+    });
 })();
 </script>
 </body>
