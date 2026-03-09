@@ -1,6 +1,7 @@
 <?php
 // Validate and resolve the template from the query string
 $template_id = preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['template'] ?? '');
+$saved = isset($_GET['saved']);
 if ($template_id === '') {
     http_response_code(400);
     exit('Missing or invalid ?template= parameter.');
@@ -360,6 +361,18 @@ function render_fields(array $fields): string {
 
         .btn-download:hover { background: #333; }
 
+        .save-success {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #2e7d32;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            border-radius: 6px;
+            padding: 10px 16px;
+            margin-bottom: 14px;
+        }
+
         .helper-text {
             text-align: center;
             font-size: 13px;
@@ -459,14 +472,17 @@ function render_fields(array $fields): string {
                 <p class="helper-text">You can easily edit this info later.</p>
                 <?php elseif ($is_last): ?>
                 <hr class="divider">
-                <form id="downloadForm" method="POST" action="api/download.php" target="_blank">
+                <?php if ($saved): ?>
+                <p class="save-success">✓ Saved successfully!</p>
+                <?php endif; ?>
+                <form id="downloadForm" method="POST" action="api/download.php">
                     <input type="hidden" name="template" value="<?= htmlspecialchars($template_id, ENT_QUOTES) ?>">
                     <?php foreach ($download_ids as $did): ?>
                     <input type="hidden" name="<?= htmlspecialchars($did, ENT_QUOTES) ?>" id="dl_<?= htmlspecialchars($did, ENT_QUOTES) ?>">
                     <?php endforeach; ?>
-                    <button type="submit" class="btn-download" onclick="syncDownloadForm()">⬇ Download Invitation HTML</button>
+                    <button type="submit" class="btn-download" onclick="syncDownloadForm()">💾 Save Invitation</button>
                 </form>
-                <p class="helper-text">Ready to deploy after download</p>
+                <p class="helper-text">Overwrites <?= htmlspecialchars($template_id, ENT_QUOTES) ?>.html on server</p>
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>

@@ -1,7 +1,6 @@
 <?php
 /**
- * api/download.php — Generates a downloadable invitation HTML file
- * Shares the same rendering logic as preview.php, only adds download response headers
+ * api/download.php — Renders invitation and overwrites template/{id}/{id}.html
  */
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -29,17 +28,13 @@ try {
     exit(htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 }
 
-/* ---- Generate filename ---- */
-$bride = trim(($_POST['bride_firstname'] ?? '') . ' ' . ($_POST['bride_lastname'] ?? ''));
-$groom = trim(($_POST['groom_firstname'] ?? '') . ' ' . ($_POST['groom_lastname'] ?? ''));
-$slug  = preg_replace('/[^a-z0-9]+/', '-', strtolower("$bride $groom"));
-$slug  = trim($slug, '-') ?: 'wedding-invitation';
-$filename = $slug . '-invitation.html';
+/* ---- Overwrite template HTML file ---- */
+$html_path = dirname(__DIR__) . "/template/{$template_id}/{$template_id}.html";
+if (file_put_contents($html_path, $output) === false) {
+    http_response_code(500);
+    exit('Failed to save file.');
+}
 
-/* ---- Output download response ---- */
-header('Content-Type: text/html; charset=utf-8');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
-header('Content-Length: ' . strlen($output));
-header('X-Content-Type-Options: nosniff');
-
-echo $output;
+/* ---- Redirect back with success flag ---- */
+header('Location: /?template=' . urlencode($template_id) . '&saved=1');
+exit;
