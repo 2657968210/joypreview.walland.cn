@@ -1,5 +1,16 @@
 <?php
-$schema     = json_decode(file_get_contents(__DIR__ . '/template/20260226/20260226.json'), true);
+// Validate and resolve the template from the query string
+$template_id = preg_replace('/[^a-zA-Z0-9_-]/', '', $_GET['template'] ?? '');
+if ($template_id === '') {
+    http_response_code(400);
+    exit('Missing or invalid ?template= parameter.');
+}
+$schema_path = __DIR__ . "/template/{$template_id}/{$template_id}.json";
+if (!is_readable($schema_path)) {
+    http_response_code(404);
+    exit('Template not found: ' . htmlspecialchars($template_id, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+}
+$schema = json_decode(file_get_contents($schema_path), true);
 
 // Derive step titles from the first field of each step
 $steps_meta = [];
@@ -410,12 +421,12 @@ function render_fields(array $fields): string {
         <div class="panel-preview-header">
             <span>Live Preview</span>
             <div class="preview-actions">
-                <a href="template/20260226/20260226.jpg" target="_blank">Full Screen ↗</a>
+                <a href="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.jpg" target="_blank">Full Screen ↗</a>
             </div>
         </div>
 
         <div class="preview-sandbox">
-            <img id="previewImg" src="template/20260226/20260226.jpg" alt="Invitation Preview">
+            <img id="previewImg" src="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.jpg" alt="Invitation Preview">
         </div>
     </div>
 
@@ -449,6 +460,7 @@ function render_fields(array $fields): string {
                 <?php elseif ($is_last): ?>
                 <hr class="divider">
                 <form id="downloadForm" method="POST" action="api/download.php" target="_blank">
+                    <input type="hidden" name="template" value="<?= htmlspecialchars($template_id, ENT_QUOTES) ?>">
                     <?php foreach ($download_ids as $did): ?>
                     <input type="hidden" name="<?= htmlspecialchars($did, ENT_QUOTES) ?>" id="dl_<?= htmlspecialchars($did, ENT_QUOTES) ?>">
                     <?php endforeach; ?>
