@@ -402,12 +402,6 @@ function render_fields(array $fields): string {
             margin-top: 14px;
         }
 
-        /* Date input */
-        .form-group input[type="date"] {
-            color: var(--text);
-            cursor: pointer;
-        }
-
         /* Divider */
         .divider {
             border: none;
@@ -468,9 +462,11 @@ function render_fields(array $fields): string {
     <!-- ░░ Right panel: edit form ░░ -->
     <div class="panel-form">
         <div class="form-inner">
-            <!-- Step indicator -->
+            <!-- Step indicator (hidden for single-step) -->
+            <?php if ($total_steps > 1): ?>
             <div class="step-indicator" id="stepIndicator">Step 1 of <?= $total_steps ?></div>
             <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:<?= round(1 / $total_steps * 100) ?>%"></div></div>
+            <?php endif; ?>
             <h1 class="form-title" id="formTitle"><?= htmlspecialchars($steps_meta[1]['title']) ?></h1>
 
             <?php foreach ($by_step as $step_id => $sections):
@@ -516,10 +512,9 @@ function render_fields(array $fields): string {
 (function () {
     'use strict';
 
-    const FIELDS   = <?= json_encode($download_ids) ?>;
-    const TOTAL    = <?= $total_steps ?>;
-    const TITLES   = <?= json_encode(array_map(fn($s) => $s['title'], $steps_meta)) ?>;
-    const TEMPLATE = <?= json_encode($template_id) ?>;
+    const FIELDS  = <?= json_encode($download_ids) ?>;
+    const TOTAL   = <?= $total_steps ?>;
+    const TITLES  = <?= json_encode(array_map(fn($s) => $s['title'], $steps_meta)) ?>;
 
     window.goToStep = function (n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -537,18 +532,6 @@ function render_fields(array $fields): string {
             const dst = document.getElementById('dl_' + id);
             if (src && dst) dst.value = src.value;
         });
-        window.open('template/' + TEMPLATE + '/' + TEMPLATE + '.html', '_blank');
-
-        const dlDate = document.getElementById('dl_ceremony_date');
-        if (dlDate && !document.getElementById('ceremony_date').value) {
-            const dateInput = document.getElementById('wedding_date').value;
-            if (dateInput) {
-                const d = new Date(dateInput + 'T00:00:00');
-                const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
-                                'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
-                dlDate.value = months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
-            }
-        }
     };
 })();
 </script>
