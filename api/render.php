@@ -117,6 +117,26 @@ function render_invitation(string $schema_path, array $post): string
                 }
                 break;
 
+            // Combine two first names: "Bride and Groom"
+            case 'couple_firstnames':
+                $src    = $ph['sources'];
+                $bride  = _ri_h($data[$src[0]] ?? '');
+                $groom  = _ri_h($data[$src[1]] ?? '');
+                if ($bride && $groom) {
+                    $replacements[$key] = "{$bride} and {$groom}";
+                } elseif ($bride || $groom) {
+                    $replacements[$key] = $bride ?: $groom;
+                } else {
+                    $replacements[$key] = _ri_h($default);
+                }
+                break;
+
+            // Single textarea field, newlines converted to <br>
+            case 'direct_nl2br':
+                $val = $data[$ph['source']] ?? '';
+                $replacements[$key] = $val !== '' ? _ri_nl2br($val) : $default;
+                break;
+
             // URL with scheme validation
             case 'safe_url':
                 $replacements[$key] = _ri_safe_url($data[$ph['source']] ?? '', $default);

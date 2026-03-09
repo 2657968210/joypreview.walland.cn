@@ -11,8 +11,8 @@ declare(strict_types=1);
 
 // ── 路径配置 ──────────────────────────────────────────────────
 $root      = dirname(__DIR__);
-$htmlFile  = $root . '/template/20260226.html';
-$outputDir = $root . '/template';
+$htmlFile  = $root . '/template/20260226/20260226.html';
+$outputDir = $root . '/template/20260226';
 $outFile   = $outputDir . '/20260226.jpg';
 
 // wkhtmltoimage 可执行路径

@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 require_once __DIR__ . '/render.php';
 
 try {
-    $output = render_invitation(dirname(__DIR__) . '/template/20260226.json', $_POST);
+    $output = render_invitation(dirname(__DIR__) . '/template/20260226/20260226.json', $_POST);
 } catch (RuntimeException $e) {
     http_response_code(500);
     exit(htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_HTML5, 'UTF-8'));

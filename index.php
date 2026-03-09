@@ -1,5 +1,5 @@
 <?php
-$schema     = json_decode(file_get_contents(__DIR__ . '/template/20260226.json'), true);
+$schema     = json_decode(file_get_contents(__DIR__ . '/template/20260226/20260226.json'), true);
 
 // Derive step titles from the first field of each step
 $steps_meta = [];
@@ -410,12 +410,12 @@ function render_fields(array $fields): string {
         <div class="panel-preview-header">
             <span>Live Preview</span>
             <div class="preview-actions">
-                <a href="template/20260226.jpg" target="_blank">Full Screen ↗</a>
+                <a href="template/20260226/20260226.jpg" target="_blank">Full Screen ↗</a>
             </div>
         </div>
 
         <div class="preview-sandbox">
-            <img id="previewImg" src="template/20260226.jpg" alt="Invitation Preview">
+            <img id="previewImg" src="template/20260226/20260226.jpg" alt="Invitation Preview">
         </div>
     </div>
 
@@ -443,7 +443,7 @@ function render_fields(array $fields): string {
                 <?= render_fields($section_fields) ?>
                 <?php endforeach; ?>
 
-                <?php if ($is_first): ?>
+                <?php if ($is_first && !$is_last): ?>
                 <button class="btn-continue" id="btnStep1" onclick="goToStep(<?= $step_id + 1 ?>)">Continue</button>
                 <p class="helper-text">You can easily edit this info later.</p>
                 <?php elseif ($is_last): ?>
@@ -468,7 +468,7 @@ function render_fields(array $fields): string {
 
     const FIELDS  = <?= json_encode($download_ids) ?>;
     const TOTAL   = <?= $total_steps ?>;
-    const TITLES  = <?= json_encode(array_column($schema['meta']['steps'], 'title', 'id')) ?>;
+    const TITLES  = <?= json_encode(array_map(fn($s) => $s['title'], $steps_meta)) ?>;
 
     window.goToStep = function (n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
