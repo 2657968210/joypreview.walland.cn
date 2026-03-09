@@ -13,6 +13,9 @@ if (!is_readable($schema_path)) {
 }
 $schema = json_decode(file_get_contents($schema_path), true);
 
+// Saved field values (persisted by last save)
+$saved_values = $schema['values'] ?? [];
+
 // Derive step titles from the first field of each step
 $steps_meta = [];
 foreach ($schema['fields'] as $f) {
@@ -35,20 +38,21 @@ $download_ids = array_values(array_map(
     array_filter($schema['fields'], fn($f) => ($f['download'] ?? true) !== false)
 ));
 
-function field_html(array $f): string {
+function field_html(array $f, string $val = ''): string {
     $id  = htmlspecialchars($f['id'], ENT_QUOTES);
     $lbl = htmlspecialchars($f['label']);
     $t   = $f['type'] ?? 'text';
     $ac  = htmlspecialchars($f['autocomplete'] ?? 'off', ENT_QUOTES);
+    $esc = htmlspecialchars($val, ENT_QUOTES);
     if ($t === 'textarea') {
-        $ctrl = "<textarea id=\"{$id}\" name=\"{$id}\" placeholder=\" \" rows=\"3\"></textarea>";
+        $ctrl = "<textarea id=\"{$id}\" name=\"{$id}\" placeholder=\" \" rows=\"3\">{$esc}</textarea>";
     } else {
-        $ctrl = "<input type=\"{$t}\" id=\"{$id}\" name=\"{$id}\" placeholder=\" \" autocomplete=\"{$ac}\">";
+        $ctrl = "<input type=\"{$t}\" id=\"{$id}\" name=\"{$id}\" placeholder=\" \" autocomplete=\"{$ac}\" value=\"{$esc}\">";
     }
     return "<div class=\"form-group\">{$ctrl}<label for=\"{$id}\">{$lbl}</label></div>\n";
 }
 
-function render_fields(array $fields): string {
+function render_fields(array $fields, array $values = []): string {
     $out = '';
     $n   = count($fields);
     $i   = 0;
@@ -61,13 +65,13 @@ function render_fields(array $fields): string {
             }
             if (count($group) > 1) {
                 $out .= '<div class="form-row">';
-                foreach ($group as $gf) $out .= field_html($gf);
+                foreach ($group as $gf) $out .= field_html($gf, $values[$gf['id']] ?? '');
                 $out .= "</div>\n";
             } else {
-                $out .= field_html($group[0]);
+                $out .= field_html($group[0], $values[$group[0]['id']] ?? '');
             }
         } else {
-            $out .= field_html($fields[$i++]);
+            $out .= field_html($fields[$i++], $values[$fields[$i-1]['id']] ?? '');
         }
     }
     return $out;
@@ -481,7 +485,7 @@ function render_fields(array $fields): string {
                     if ($section_name !== ''): ?>
                 <div class="section-title"><?= htmlspecialchars($section_name) ?></div>
                     <?php endif; ?>
-                <?= render_fields($section_fields) ?>
+                <?= render_fields($section_fields, $saved_values) ?>
                 <?php endforeach; ?>
 
                 <?php if ($is_first && !$is_last): ?>
@@ -511,10 +515,10 @@ function render_fields(array $fields): string {
 (function () {
     'use strict';
 
-    const FIELDS      = <?= json_encode($download_ids) ?>;
-    const TOTAL       = <?= $total_steps ?>;
-    const TITLES      = <?= json_encode(array_map(fn($s) => $s['title'], $steps_meta)) ?>;
-    const TEMPLATE_ID = <?= json_encode($template_id) ?>;
+    const FIELDS       = <?= json_encode($download_ids) ?>;
+    const TOTAL        = <?= $total_steps ?>;
+    const TITLES       = <?= json_encode(array_map(fn($s) => $s['title'], $steps_meta)) ?>;
+    const SAVED_VALUES = <?= json_encode($saved_values) ?>;
 
     window.goToStep = function (n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -564,6 +568,9 @@ function render_fields(array $fields): string {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', debouncedPreview);
     });
+
+    // Trigger preview on load if there are saved values
+    if (Object.keys(SAVED_VALUES).length > 0) updatePreview();
 })();
 </script>
 </body>

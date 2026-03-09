@@ -35,6 +35,12 @@ if (file_put_contents($html_path, $output) === false) {
     exit('Failed to save file.');
 }
 
+/* ---- Persist field values back into JSON ---- */
+$schema_data = json_decode(file_get_contents($schema_path), true);
+$field_ids = array_column($schema_data['fields'], 'id');
+$schema_data['values'] = array_map('trim', array_intersect_key($_POST, array_flip($field_ids)));
+file_put_contents($schema_path, json_encode($schema_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
 /* ---- Redirect back with success flag ---- */
 header('Location: /?template=' . urlencode($template_id) . '&saved=1');
 exit;
