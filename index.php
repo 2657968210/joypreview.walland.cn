@@ -361,6 +361,28 @@ function render_fields(array $fields): string {
 
         .btn-download:hover { background: #333; }
 
+        .btn-open-invite {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: none;
+            border: 1.5px solid var(--accent);
+            color: var(--accent);
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            margin-top: 12px;
+            transition: background .2s, color .2s;
+        }
+
+        .btn-open-invite:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+
         .save-success {
             text-align: center;
             font-size: 14px;
@@ -482,7 +504,7 @@ function render_fields(array $fields): string {
                     <?php endforeach; ?>
                     <button type="submit" class="btn-download" onclick="syncDownloadForm()">💾 Save Invitation</button>
                 </form>
-                <p class="helper-text">Overwrites <?= htmlspecialchars($template_id, ENT_QUOTES) ?>.html on server</p>
+                <a href="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.html" target="_blank" class="btn-open-invite">📩 Open Invitation</a>
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>
@@ -494,9 +516,10 @@ function render_fields(array $fields): string {
 (function () {
     'use strict';
 
-    const FIELDS  = <?= json_encode($download_ids) ?>;
-    const TOTAL   = <?= $total_steps ?>;
-    const TITLES  = <?= json_encode(array_map(fn($s) => $s['title'], $steps_meta)) ?>;
+    const FIELDS   = <?= json_encode($download_ids) ?>;
+    const TOTAL    = <?= $total_steps ?>;
+    const TITLES   = <?= json_encode(array_map(fn($s) => $s['title'], $steps_meta)) ?>;
+    const TEMPLATE = <?= json_encode($template_id) ?>;
 
     window.goToStep = function (n) {
         document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -514,6 +537,7 @@ function render_fields(array $fields): string {
             const dst = document.getElementById('dl_' + id);
             if (src && dst) dst.value = src.value;
         });
+        window.open('template/' + TEMPLATE + '/' + TEMPLATE + '.html', '_blank');
 
         const dlDate = document.getElementById('dl_ceremony_date');
         if (dlDate && !document.getElementById('ceremony_date').value) {
