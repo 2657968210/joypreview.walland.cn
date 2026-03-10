@@ -1,6 +1,6 @@
 <?php
 /**
- * api/download.php — Renders invitation and overwrites template/{id}/{id}.html
+ * api/download.php — Renders invitation and saves both HTML + field values
  */
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -28,19 +28,23 @@ try {
     exit(htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
 }
 
-/* ---- Overwrite template HTML file ---- */
+/* ---- Save rendered HTML ---- */
 $html_path = dirname(__DIR__) . "/template/{$template_id}/{$template_id}.html";
 if (file_put_contents($html_path, $output) === false) {
     http_response_code(500);
-    exit('Failed to save file.');
+    exit('Failed to save HTML.');
 }
 
-/* ---- Persist field values back into JSON ---- */
-$schema_data = json_decode(file_get_contents($schema_path), true);
-$field_ids = array_column($schema_data['fields'], 'id');
-$schema_data['values'] = array_map('trim', array_intersect_key($_POST, array_flip($field_ids)));
-file_put_contents($schema_path, json_encode($schema_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+/* ---- Update field values in JSON ---- */
+$schema = json_decode(file_get_contents($schema_path), true);
+foreach ($schema['fields'] as &$field) {
+    $key = $field['key'];
+    if (isset($_POST[$key])) {
+        $field['value'] = trim($_POST[$key]);
+    }
+}
+file_put_contents($schema_path, json_encode($schema, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
-/* ---- Redirect back with success flag ---- */
+/* ---- Redirect back ---- */
 header('Location: /?template=' . urlencode($template_id) . '&saved=1');
 exit;
