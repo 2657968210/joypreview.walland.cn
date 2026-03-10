@@ -217,6 +217,99 @@ $fields = $schema['fields'] ?? [];
             border-top: 1px solid var(--border);
             margin: 24px 0;
         }
+        .file-upload-group {
+            margin-bottom: 20px;
+        }
+        .file-upload-group label.field-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .file-upload-box {
+            border: 2px dashed var(--border);
+            border-radius: 6px;
+            padding: 24px;
+            text-align: center;
+            background: #fafafa;
+            cursor: pointer;
+            transition: border-color .2s, background .2s;
+        }
+        .file-upload-box:hover {
+            border-color: var(--accent);
+            background: #fff;
+        }
+        .file-upload-box.dragover {
+            border-color: var(--accent);
+            background: #fff5f9;
+        }
+        .file-upload-box input[type="file"] {
+            display: none;
+        }
+        .file-upload-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        .file-upload-text {
+            font-size: 14px;
+            color: var(--label);
+        }
+        .file-upload-hint {
+            font-size: 12px;
+            color: var(--label);
+            margin-top: 4px;
+        }
+        .file-preview {
+            margin-top: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .file-preview img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .file-preview video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .file-preview-actions {
+            padding: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9f9f9;
+            font-size: 12px;
+        }
+        .file-preview-name {
+            color: var(--label);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+        }
+        .file-preview-remove {
+            color: var(--accent);
+            cursor: pointer;
+            text-decoration: none;
+            margin-left: 8px;
+        }
+        .file-preview-remove:hover {
+            color: var(--accent-hover);
+        }
+        .upload-progress {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #1976d2;
+        }
         @media (max-width: 900px) {
             .editor-layout {
                 flex-direction: column;
@@ -266,16 +359,34 @@ $fields = $schema['fields'] ?? [];
                 $key = htmlspecialchars($field['key'], ENT_QUOTES);
                 $label = htmlspecialchars($field['label']);
                 $value = htmlspecialchars($field['value'] ?: $field['default'], ENT_QUOTES);
+                $type = $field['type'] ?? 'text';
                 $is_textarea = stripos($field['label'], 'multi-line') !== false;
+                $is_file = in_array($type, ['image', 'video']);
             ?>
+            <?php if ($is_file): ?>
+            <div class="file-upload-group" data-key="<?= $key ?>" data-type="<?= $type ?>">
+                <label class="field-label"><?= $label ?></label>
+                <div class="file-upload-box" onclick="document.getElementById('file_<?= $key ?>').click()">
+                    <input type="file" id="file_<?= $key ?>" accept="<?= $type === 'image' ? 'image/*' : 'video/*' ?>" data-key="<?= $key ?>">
+                    <div class="file-upload-icon"><?= $type === 'image' ? '🖼️' : '🎬' ?></div>
+                    <div class="file-upload-text">点击或拖拽上传<?= $type === 'image' ? '图片' : '视频' ?></div>
+                    <div class="file-upload-hint"><?= $type === 'image' ? 'JPG, PNG, GIF, WebP' : 'MP4, WebM, MOV' ?> (最大50MB)</div>
+                </div>
+                <div id="preview_<?= $key ?>" class="file-preview" style="display: none;"></div>
+                <div id="progress_<?= $key ?>" class="upload-progress" style="display: none;">上传中...</div>
+                <input type="hidden" id="field_<?= $key ?>" name="<?= $key ?>" value="<?= $value ?>">
+            </div>
+            <?php elseif ($is_textarea): ?>
             <div class="form-group">
-                <?php if ($is_textarea): ?>
                 <textarea id="field_<?= $key ?>" name="<?= $key ?>" placeholder=" "><?= $value ?></textarea>
-                <?php else: ?>
-                <input type="text" id="field_<?= $key ?>" name="<?= $key ?>" placeholder=" " value="<?= $value ?>">
-                <?php endif; ?>
                 <label for="field_<?= $key ?>"><?= $label ?></label>
             </div>
+            <?php else: ?>
+            <div class="form-group">
+                <input type="text" id="field_<?= $key ?>" name="<?= $key ?>" placeholder=" " value="<?= $value ?>">
+                <label for="field_<?= $key ?>"><?= $label ?></label>
+            </div>
+            <?php endif; ?>
             <?php endforeach; ?>
 
             <hr class="divider">
@@ -298,6 +409,121 @@ $fields = $schema['fields'] ?? [];
 
     const TEMPLATE_ID = <?= json_encode($template_id) ?>;
     const KEYS = <?= json_encode(array_column($fields, 'key')) ?>;
+    const FIELDS = <?= json_encode($fields) ?>;
+
+    // File upload functionality
+    function setupFileUpload() {
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            const key = input.dataset.key;
+            const uploadGroup = input.closest('.file-upload-group');
+            const uploadBox = uploadGroup.querySelector('.file-upload-box');
+            const previewDiv = document.getElementById('preview_' + key);
+            const progressDiv = document.getElementById('progress_' + key);
+            const hiddenInput = document.getElementById('field_' + key);
+            const fileType = uploadGroup.dataset.type;
+
+            // Check if there's already a value and show preview
+            if (hiddenInput.value) {
+                showPreview(key, hiddenInput.value, fileType);
+            }
+
+            // File input change
+            input.addEventListener('change', function(e) {
+                if (this.files.length > 0) {
+                    uploadFile(this.files[0], key, fileType);
+                }
+            });
+
+            // Drag and drop
+            uploadBox.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.add('dragover');
+            });
+
+            uploadBox.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
+            });
+
+            uploadBox.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    uploadFile(e.dataTransfer.files[0], key, fileType);
+                }
+            });
+        });
+    }
+
+    function uploadFile(file, key, fileType) {
+        const previewDiv = document.getElementById('preview_' + key);
+        const progressDiv = document.getElementById('progress_' + key);
+        const hiddenInput = document.getElementById('field_' + key);
+
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('template', TEMPLATE_ID);
+
+        progressDiv.style.display = 'block';
+        progressDiv.textContent = '上传中...';
+        previewDiv.style.display = 'none';
+
+        fetch('api/upload.php', {
+            method: 'POST',
+            body: fd
+        })
+        .then(r => r.json())
+        .then(data => {
+            progressDiv.style.display = 'none';
+            if (data.success) {
+                hiddenInput.value = data.url;
+                showPreview(key, data.url, fileType);
+                debouncedPreview();
+            } else {
+                alert('上传失败: ' + (data.error || '未知错误'));
+            }
+        })
+        .catch(err => {
+            progressDiv.style.display = 'none';
+            alert('上传失败: ' + err.message);
+        });
+    }
+
+    function showPreview(key, url, fileType) {
+        const previewDiv = document.getElementById('preview_' + key);
+        const fileName = url.split('/').pop();
+        
+        let previewHTML = '';
+        if (fileType === 'image') {
+            previewHTML = '<img src="' + url + '" alt="Preview">';
+        } else if (fileType === 'video') {
+            previewHTML = '<video controls><source src="' + url + '" type="video/mp4"></video>';
+        }
+        
+        previewHTML += '<div class="file-preview-actions">';
+        previewHTML += '<span class="file-preview-name">' + fileName + '</span>';
+        previewHTML += '<a href="#" class="file-preview-remove" onclick="removeFile(\'' + key + '\'); return false;">✕ 删除</a>';
+        previewHTML += '</div>';
+        
+        previewDiv.innerHTML = previewHTML;
+        previewDiv.style.display = 'block';
+    }
+
+    window.removeFile = function(key) {
+        const hiddenInput = document.getElementById('field_' + key);
+        const previewDiv = document.getElementById('preview_' + key);
+        const fileInput = document.getElementById('file_' + key);
+        
+        hiddenInput.value = '';
+        previewDiv.style.display = 'none';
+        previewDiv.innerHTML = '';
+        fileInput.value = '';
+        
+        debouncedPreview();
+    };
 
     window.syncSaveForm = function () {
         KEYS.forEach(key => {
@@ -335,6 +561,9 @@ $fields = $schema['fields'] ?? [];
         const el = document.getElementById('field_' + key);
         if (el) el.addEventListener('input', debouncedPreview);
     });
+
+    // Initialize file uploads
+    setupFileUpload();
 
     // Trigger preview on load
     setTimeout(updatePreview, 100);
