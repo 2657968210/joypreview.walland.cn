@@ -675,6 +675,7 @@ foreach ($fields as $field) {
     // Section navigation
     const sectionLinks = document.querySelectorAll('.section-nav-link');
     const formContent = document.querySelector('.form-content');
+    const previewFrame = document.getElementById('previewFrame');
     
     // Smooth scroll to section
     sectionLinks.forEach(link => {
@@ -689,7 +690,7 @@ foreach ($fields as $field) {
                 // Add active class to clicked link
                 this.classList.add('active');
                 
-                // Smooth scroll to section
+                // Smooth scroll to section in form
                 const formContentRect = formContent.getBoundingClientRect();
                 const targetRect = targetSection.getBoundingClientRect();
                 const scrollTop = formContent.scrollTop;
@@ -699,9 +700,30 @@ foreach ($fields as $field) {
                     top: offsetTop,
                     behavior: 'smooth'
                 });
+                
+                // Also scroll preview iframe to corresponding section
+                scrollPreviewToSection(this.dataset.section);
             }
         });
     });
+    
+    // Scroll preview iframe to section
+    function scrollPreviewToSection(sectionId) {
+        try {
+            const iframeDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            if (iframeDoc) {
+                const targetElement = iframeDoc.getElementById(sectionId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    // Fallback: scroll to top if section not found
+                    previewFrame.contentWindow.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }
+        } catch (err) {
+            console.log('Unable to scroll preview iframe:', err);
+        }
+    }
     
     // Highlight active section on scroll
     function updateActiveSectionNav() {
