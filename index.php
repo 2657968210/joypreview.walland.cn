@@ -15,6 +15,17 @@ if (!is_readable($schema_path)) {
 
 $schema = json_decode(file_get_contents($schema_path), true);
 $fields = $schema['fields'] ?? [];
+$sections = $schema['sections'] ?? [];
+
+// Group fields by section
+$fields_by_section = [];
+foreach ($fields as $field) {
+    $section_id = $field['section'] ?? 'general';
+    if (!isset($fields_by_section[$section_id])) {
+        $fields_by_section[$section_id] = [];
+    }
+    $fields_by_section[$section_id][] = $field;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -95,16 +106,76 @@ $fields = $schema['fields'] ?? [];
         .panel-form {
             flex: 0 0 42%;
             display: flex;
-            flex-direction: column;
-            overflow-y: auto;
+            flex-direction: row;
+            overflow: hidden;
             background: #fff;
             border-left: 1px solid var(--border);
         }
+        .form-sidebar {
+            flex: 0 0 240px;
+            background: #fafafa;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 24px 0;
+        }
+        .form-sidebar h3 {
+            padding: 0 20px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--label);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .section-nav {
+            list-style: none;
+        }
+        .section-nav-item {
+            display: block;
+        }
+        .section-nav-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 14px;
+            transition: background .2s;
+            cursor: pointer;
+        }
+        .section-nav-link:hover {
+            background: rgba(0,0,0,0.03);
+        }
+        .section-nav-link.active {
+            background: #fff;
+            color: var(--accent);
+            font-weight: 600;
+            border-left: 3px solid var(--accent);
+            padding-left: 17px;
+        }
+        .section-nav-arrow {
+            color: var(--label);
+            font-size: 16px;
+        }
+        .form-content {
+            flex: 1;
+            overflow-y: auto;
+        }
         .form-inner {
             padding: 40px 48px 60px;
-            max-width: 480px;
-            margin: 0 auto;
+            max-width: 540px;
             width: 100%;
+        }
+        .section-block {
+            margin-bottom: 48px;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
         }
         .form-title {
             font-size: 26px;
@@ -323,8 +394,18 @@ $fields = $schema['fields'] ?? [];
             }
             .panel-form {
                 flex: none;
+                flex-direction: column;
                 border-left: none;
                 border-top: 1px solid var(--border);
+                overflow: visible;
+            }
+            .form-sidebar {
+                flex: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 16px 0;
+            }
+            .form-content {
                 overflow-y: visible;
             }
             .form-inner {
@@ -348,14 +429,36 @@ $fields = $schema['fields'] ?? [];
     </div>
 
     <div class="panel-form">
-        <div class="form-inner">
-            <h1 class="form-title">Personalize your invitation</h1>
-            
-            <?php if ($saved): ?>
-            <p class="save-success">✓ Saved successfully!</p>
-            <?php endif; ?>
+        <div class="form-sidebar">
+            <h3>Pages</h3>
+            <ul class="section-nav">
+                <?php foreach ($sections as $section): ?>
+                <li class="section-nav-item">
+                    <a href="#section-<?= htmlspecialchars($section['id'], ENT_QUOTES) ?>" 
+                       class="section-nav-link" 
+                       data-section="<?= htmlspecialchars($section['id'], ENT_QUOTES) ?>">
+                        <span><?= htmlspecialchars($section['title']) ?></span>
+                        <span class="section-nav-arrow">›</span>
+                    </a>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+        
+        <div class="form-content">
+            <div class="form-inner">
+                <h1 class="form-title">Personalize your invitation</h1>
+                
+                <?php if ($saved): ?>
+                <p class="save-success">✓ Saved successfully!</p>
+                <?php endif; ?>
 
-            <?php foreach ($fields as $field):
+                <?php foreach ($sections as $section): ?>
+                    <?php if (isset($fields_by_section[$section['id']]) && count($fields_by_section[$section['id']]) > 0): ?>
+                    <div class="section-block" id="section-<?= htmlspecialchars($section['id'], ENT_QUOTES) ?>">
+                        <h2 class="section-title"><?= htmlspecialchars($section['title']) ?></h2>
+                        
+                        <?php foreach ($fields_by_section[$section['id']] as $field):
                 $key = htmlspecialchars($field['key'], ENT_QUOTES);
                 $label = htmlspecialchars($field['label']);
                 $value = htmlspecialchars($field['value'] ?: $field['default'], ENT_QUOTES);
@@ -387,18 +490,22 @@ $fields = $schema['fields'] ?? [];
                 <label for="field_<?= $key ?>"><?= $label ?></label>
             </div>
             <?php endif; ?>
-            <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                <?php endforeach; ?>
 
-            <hr class="divider">
+                <hr class="divider">
 
-            <form id="saveForm" method="POST" action="api/download.php">
+                <form id="saveForm" method="POST" action="api/download.php">
                 <input type="hidden" name="template" value="<?= htmlspecialchars($template_id, ENT_QUOTES) ?>">
                 <?php foreach ($fields as $field): ?>
                 <input type="hidden" name="<?= htmlspecialchars($field['key'], ENT_QUOTES) ?>" id="save_<?= htmlspecialchars($field['key'], ENT_QUOTES) ?>">
                 <?php endforeach; ?>
-                <button type="submit" class="btn-download" onclick="syncSaveForm()">💾 Save Invitation</button>
-            </form>
-            <a href="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.html" target="_blank" class="btn-open-invite">📩 Open Invitation</a>
+                    <button type="submit" class="btn-download" onclick="syncSaveForm()">💾 Save Invitation</button>
+                </form>
+                <a href="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.html" target="_blank" class="btn-open-invite">📩 Open Invitation</a>
+            </div>
         </div>
     </div>
 </div>
@@ -564,6 +671,71 @@ $fields = $schema['fields'] ?? [];
 
     // Initialize file uploads
     setupFileUpload();
+
+    // Section navigation
+    const sectionLinks = document.querySelectorAll('.section-nav-link');
+    const formContent = document.querySelector('.form-content');
+    
+    // Smooth scroll to section
+    sectionLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            const targetSection = document.querySelector(targetId);
+            
+            if (targetSection) {
+                // Remove active class from all links
+                sectionLinks.forEach(l => l.classList.remove('active'));
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                // Smooth scroll to section
+                const formContentRect = formContent.getBoundingClientRect();
+                const targetRect = targetSection.getBoundingClientRect();
+                const scrollTop = formContent.scrollTop;
+                const offsetTop = targetRect.top - formContentRect.top + scrollTop - 20;
+                
+                formContent.scrollTo({
+                    top: offsetTop,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+    
+    // Highlight active section on scroll
+    function updateActiveSectionNav() {
+        const sections = document.querySelectorAll('.section-block');
+        const scrollTop = formContent.scrollTop;
+        const formContentRect = formContent.getBoundingClientRect();
+        
+        let activeSection = null;
+        sections.forEach(section => {
+            const rect = section.getBoundingClientRect();
+            const top = rect.top - formContentRect.top + scrollTop;
+            if (scrollTop >= top - 100) {
+                activeSection = section.id;
+            }
+        });
+        
+        if (activeSection) {
+            sectionLinks.forEach(link => {
+                const href = link.getAttribute('href').substring(1);
+                if (href === activeSection) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        }
+    }
+    
+    formContent.addEventListener('scroll', debounce(updateActiveSectionNav, 100));
+    
+    // Set initial active section
+    if (sectionLinks.length > 0) {
+        sectionLinks[0].classList.add('active');
+    }
 
     // Trigger preview on load
     setTimeout(updatePreview, 100);
