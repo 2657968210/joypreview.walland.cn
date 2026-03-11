@@ -434,6 +434,7 @@ foreach ($fields as $field) {
     </div>
 
     <div class="panel-form">
+        <?php if (!empty($sections)): ?>
         <div class="form-sidebar">
             <h3>Pages</h3>
             <ul class="section-nav">
@@ -449,6 +450,7 @@ foreach ($fields as $field) {
                 <?php endforeach; ?>
             </ul>
         </div>
+        <?php endif; ?>
         
         <div class="form-content">
             <div class="form-inner">
@@ -458,12 +460,13 @@ foreach ($fields as $field) {
                 <p class="save-success">✓ Saved successfully!</p>
                 <?php endif; ?>
 
-                <?php foreach ($sections as $section): ?>
-                    <?php if (isset($fields_by_section[$section['id']]) && count($fields_by_section[$section['id']]) > 0): ?>
-                    <div class="section-block" id="section-<?= htmlspecialchars($section['id'], ENT_QUOTES) ?>">
-                        <h2 class="section-title"><?= htmlspecialchars($section['title']) ?></h2>
-                        
-                        <?php foreach ($fields_by_section[$section['id']] as $field):
+                <?php if (!empty($sections)): ?>
+                    <?php foreach ($sections as $section): ?>
+                        <?php if (isset($fields_by_section[$section['id']]) && count($fields_by_section[$section['id']]) > 0): ?>
+                        <div class="section-block" id="section-<?= htmlspecialchars($section['id'], ENT_QUOTES) ?>">
+                            <h2 class="section-title"><?= htmlspecialchars($section['title']) ?></h2>
+                            
+                            <?php foreach ($fields_by_section[$section['id']] as $field):
                 $key = htmlspecialchars($field['key'], ENT_QUOTES);
                 $label = htmlspecialchars($field['label']);
                 $value = htmlspecialchars($field['value'] ?: $field['default'], ENT_QUOTES);
@@ -502,9 +505,50 @@ foreach ($fields as $field) {
             </div>
             <?php endif; ?>
                         <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-                <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <?php foreach ($fields as $field):
+                $key = htmlspecialchars($field['key'], ENT_QUOTES);
+                $label = htmlspecialchars($field['label']);
+                $value = htmlspecialchars($field['value'] ?: $field['default'], ENT_QUOTES);
+                $type = $field['type'] ?? 'text';
+                $is_textarea = stripos($field['label'], 'multi-line') !== false;
+                $is_file = in_array($type, ['image', 'video', 'audio']);
+            ?>
+            <?php if ($is_file): ?>
+            <?php 
+                $accept = $type === 'image' ? 'image/*' : ($type === 'video' ? 'video/*' : 'audio/*');
+                $icon = $type === 'image' ? '🖼️' : ($type === 'video' ? '🎬' : '🎵');
+                $text = $type === 'image' ? '图片' : ($type === 'video' ? '视频' : '音频');
+                $hint = $type === 'image' ? 'JPG, PNG, GIF, WebP' : ($type === 'video' ? 'MP4, WebM, MOV' : 'MP3, M4A, WAV, OGG');
+            ?>
+            <div class="file-upload-group" data-key="<?= $key ?>" data-type="<?= $type ?>">
+                <label class="field-label"><?= $label ?></label>
+                <div class="file-upload-box" onclick="document.getElementById('file_<?= $key ?>').click()">
+                    <input type="file" id="file_<?= $key ?>" accept="<?= $accept ?>" data-key="<?= $key ?>">
+                    <div class="file-upload-icon"><?= $icon ?></div>
+                    <div class="file-upload-text">点击或拖拽上传<?= $text ?></div>
+                    <div class="file-upload-hint"><?= $hint ?> (最大50MB)</div>
+                </div>
+                <div id="preview_<?= $key ?>" class="file-preview" style="display: none;"></div>
+                <div id="progress_<?= $key ?>" class="upload-progress" style="display: none;">上传中...</div>
+                <input type="hidden" id="field_<?= $key ?>" name="<?= $key ?>" value="<?= $value ?>">
+            </div>
+            <?php elseif ($is_textarea): ?>
+            <div class="form-group">
+                <textarea id="field_<?= $key ?>" name="<?= $key ?>" placeholder=" "><?= $value ?></textarea>
+                <label for="field_<?= $key ?>"><?= $label ?></label>
+            </div>
+            <?php else: ?>
+            <div class="form-group">
+                <input type="text" id="field_<?= $key ?>" name="<?= $key ?>" placeholder=" " value="<?= $value ?>">
+                <label for="field_<?= $key ?>"><?= $label ?></label>
+            </div>
+            <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
 
                 <hr class="divider">
 
