@@ -348,6 +348,11 @@ foreach ($fields as $field) {
             height: auto;
             display: block;
         }
+        .file-preview audio {
+            width: 100%;
+            display: block;
+            margin: 12px 0;
+        }
         .file-preview-actions {
             padding: 8px;
             display: flex;
@@ -464,16 +469,22 @@ foreach ($fields as $field) {
                 $value = htmlspecialchars($field['value'] ?: $field['default'], ENT_QUOTES);
                 $type = $field['type'] ?? 'text';
                 $is_textarea = stripos($field['label'], 'multi-line') !== false;
-                $is_file = in_array($type, ['image', 'video']);
+                $is_file = in_array($type, ['image', 'video', 'audio']);
             ?>
             <?php if ($is_file): ?>
+            <?php 
+                $accept = $type === 'image' ? 'image/*' : ($type === 'video' ? 'video/*' : 'audio/*');
+                $icon = $type === 'image' ? '🖼️' : ($type === 'video' ? '🎬' : '🎵');
+                $text = $type === 'image' ? '图片' : ($type === 'video' ? '视频' : '音频');
+                $hint = $type === 'image' ? 'JPG, PNG, GIF, WebP' : ($type === 'video' ? 'MP4, WebM, MOV' : 'MP3, M4A, WAV, OGG');
+            ?>
             <div class="file-upload-group" data-key="<?= $key ?>" data-type="<?= $type ?>">
                 <label class="field-label"><?= $label ?></label>
                 <div class="file-upload-box" onclick="document.getElementById('file_<?= $key ?>').click()">
-                    <input type="file" id="file_<?= $key ?>" accept="<?= $type === 'image' ? 'image/*' : 'video/*' ?>" data-key="<?= $key ?>">
-                    <div class="file-upload-icon"><?= $type === 'image' ? '🖼️' : '🎬' ?></div>
-                    <div class="file-upload-text">点击或拖拽上传<?= $type === 'image' ? '图片' : '视频' ?></div>
-                    <div class="file-upload-hint"><?= $type === 'image' ? 'JPG, PNG, GIF, WebP' : 'MP4, WebM, MOV' ?> (最大50MB)</div>
+                    <input type="file" id="file_<?= $key ?>" accept="<?= $accept ?>" data-key="<?= $key ?>">
+                    <div class="file-upload-icon"><?= $icon ?></div>
+                    <div class="file-upload-text">点击或拖拽上传<?= $text ?></div>
+                    <div class="file-upload-hint"><?= $hint ?> (最大50MB)</div>
                 </div>
                 <div id="preview_<?= $key ?>" class="file-preview" style="display: none;"></div>
                 <div id="progress_<?= $key ?>" class="upload-progress" style="display: none;">上传中...</div>
@@ -608,6 +619,8 @@ foreach ($fields as $field) {
             previewHTML = '<img src="' + url + '" alt="Preview">';
         } else if (fileType === 'video') {
             previewHTML = '<video controls><source src="' + url + '" type="video/mp4"></video>';
+        } else if (fileType === 'audio') {
+            previewHTML = '<audio controls><source src="' + url + '"></audio>';
         }
         
         previewHTML += '<div class="file-preview-actions">';

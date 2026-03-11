@@ -43,7 +43,8 @@ $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 // Validate file type
 $allowed_images = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 $allowed_videos = ['mp4', 'webm', 'ogg', 'mov'];
-$allowed_extensions = array_merge($allowed_images, $allowed_videos);
+$allowed_audios = ['mp3', 'm4a', 'wav', 'ogg', 'aac', 'flac'];
+$allowed_extensions = array_merge($allowed_images, $allowed_videos, $allowed_audios);
 
 if (!in_array($file_ext, $allowed_extensions)) {
     http_response_code(400);
@@ -75,7 +76,7 @@ if (!move_uploaded_file($file_tmp, $upload_path)) {
 }
 
 // Determine file type
-$file_type = in_array($file_ext, $allowed_images) ? 'image' : 'video';
+$file_type = in_array($file_ext, $allowed_images) ? 'image' : (in_array($file_ext, $allowed_videos) ? 'video' : 'audio');
 
 // Return success with file info
 echo json_encode([
