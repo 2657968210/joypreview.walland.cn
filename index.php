@@ -883,7 +883,14 @@ foreach ($fields as $field) {
             const iframeWin = previewFrame.contentWindow;
             const iframeDoc = iframeWin.document;
             if (!iframeDoc || iframeDoc.readyState !== 'complete') return;
-            const el = iframeDoc.getElementById(activeSectionId);
+            // Use querySelectorAll to handle duplicate IDs (desktop/mobile templates)
+            // and find the one that is actually visible
+            const candidates = iframeDoc.querySelectorAll('#' + activeSectionId);
+            let el = null;
+            candidates.forEach(function(c) {
+                if (!el && c.offsetParent !== null) el = c;
+            });
+            if (!el && candidates.length > 0) el = candidates[0];
             if (el) {
                 const top = el.getBoundingClientRect().top + iframeWin.scrollY;
                 iframeWin.scrollTo({ top: top, behavior: 'smooth' });
