@@ -76,6 +76,30 @@ foreach ($fields as $field) {
             flex-shrink: 0;
         }
         .panel-preview-header span { font-weight: 600; color: var(--text); }
+        .device-toggle {
+            display: flex;
+            gap: 3px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            padding: 3px;
+        }
+        .device-toggle-btn {
+            background: none;
+            border: none;
+            padding: 4px 14px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--label);
+            transition: background .2s, color .2s, box-shadow .2s;
+            font-family: inherit;
+        }
+        .device-toggle-btn.active {
+            background: #fff;
+            color: var(--text);
+            font-weight: 600;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        }
         .preview-actions { display: flex; gap: 12px; }
         .preview-actions a {
             background: none;
@@ -96,12 +120,84 @@ foreach ($fields as $field) {
             flex: 1;
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: stretch;
+        }
+        .phone-frame-shell {
+            display: contents;
+        }
+        .phone-top-bar, .phone-bottom-bar { display: none; }
+        .phone-screen-area {
+            flex: 1;
+            width: 100%;
+            overflow: hidden;
         }
         #previewFrame {
             width: 100%;
             height: 100%;
             border: none;
             display: block;
+        }
+        /* Mobile preview mode */
+        .preview-sandbox.mobile-mode {
+            align-items: center;
+            justify-content: center;
+            background: #e8e3dc;
+            padding: 24px 16px;
+        }
+        .preview-sandbox.mobile-mode .phone-frame-shell {
+            display: flex;
+            flex-direction: column;
+            flex: none;
+            width: 375px;
+            height: 100%;
+            max-height: 780px;
+            background: #1c1c1e;
+            border-radius: 52px;
+            box-shadow: 0 0 0 1.5px #5a5a5e, 0 0 0 5px #1c1c1e, 0 0 0 6.5px #4a4a4e, 0 28px 80px rgba(0,0,0,0.45);
+            overflow: hidden;
+            position: relative;
+        }
+        .preview-sandbox.mobile-mode .phone-top-bar {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 50px;
+            background: #1c1c1e;
+            flex-shrink: 0;
+            padding-bottom: 6px;
+        }
+        .phone-notch {
+            width: 126px;
+            height: 34px;
+            background: #1c1c1e;
+            border-radius: 0 0 22px 22px;
+            border: 2px solid #3a3a3c;
+            border-top: none;
+        }
+        .preview-sandbox.mobile-mode .phone-screen-area {
+            flex: 1;
+            overflow: hidden;
+            background: #fff;
+            position: relative;
+        }
+        .preview-sandbox.mobile-mode .phone-screen-area #previewFrame {
+            width: 100%;
+            height: 100%;
+        }
+        .preview-sandbox.mobile-mode .phone-bottom-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 30px;
+            background: #1c1c1e;
+            flex-shrink: 0;
+        }
+        .phone-home-indicator {
+            width: 134px;
+            height: 5px;
+            background: #48484a;
+            border-radius: 3px;
         }
         .panel-form {
             flex: 0 0 42%;
@@ -424,12 +520,26 @@ foreach ($fields as $field) {
     <div class="panel-preview">
         <div class="panel-preview-header">
             <span>Live Preview</span>
+            <div class="device-toggle">
+                <button class="device-toggle-btn active" id="btnDesktop" onclick="setPreviewMode('desktop')" title="Desktop">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                </button>
+                <button class="device-toggle-btn" id="btnMobile" onclick="setPreviewMode('mobile')" title="Mobile">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
+                </button>
+            </div>
             <div class="preview-actions">
                 <a href="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.html" target="_blank">Full Screen ↗</a>
             </div>
         </div>
-        <div class="preview-sandbox">
-            <iframe id="previewFrame" src="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.html" title="Invitation Preview"></iframe>
+        <div class="preview-sandbox" id="previewSandbox">
+            <div class="phone-frame-shell">
+                <div class="phone-top-bar"><div class="phone-notch"></div></div>
+                <div class="phone-screen-area">
+                    <iframe id="previewFrame" src="template/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>/<?= htmlspecialchars($template_id, ENT_QUOTES) ?>.html" title="Invitation Preview"></iframe>
+                </div>
+                <div class="phone-bottom-bar"><div class="phone-home-indicator"></div></div>
+            </div>
         </div>
     </div>
 
@@ -764,22 +874,32 @@ foreach ($fields as $field) {
         });
     });
     
+    // Track which section is active in the preview
+    let activeSectionId = null;
+
+    function doScrollPreview() {
+        if (!activeSectionId) return;
+        try {
+            const iframeWin = previewFrame.contentWindow;
+            const iframeDoc = iframeWin.document;
+            if (!iframeDoc || iframeDoc.readyState !== 'complete') return;
+            const el = iframeDoc.getElementById(activeSectionId);
+            if (el) {
+                const top = el.getBoundingClientRect().top + iframeWin.scrollY;
+                iframeWin.scrollTo({ top: top, behavior: 'smooth' });
+            } else {
+                iframeWin.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        } catch (e) {}
+    }
+
+    // Re-apply scroll every time the preview iframe reloads (srcdoc update)
+    previewFrame.addEventListener('load', doScrollPreview);
+
     // Scroll preview iframe to section
     function scrollPreviewToSection(sectionId) {
-        try {
-            const iframeDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-            if (iframeDoc) {
-                const targetElement = iframeDoc.getElementById(sectionId);
-                if (targetElement) {
-                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                    // Fallback: scroll to top if section not found
-                    previewFrame.contentWindow.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-            }
-        } catch (err) {
-            console.log('Unable to scroll preview iframe:', err);
-        }
+        activeSectionId = sectionId;
+        doScrollPreview();
     }
     
     // Highlight active section on scroll
@@ -815,6 +935,22 @@ foreach ($fields as $field) {
     if (sectionLinks.length > 0) {
         sectionLinks[0].classList.add('active');
     }
+
+    // Device mode toggle
+    window.setPreviewMode = function(mode) {
+        const sandbox = document.getElementById('previewSandbox');
+        const btnDesktop = document.getElementById('btnDesktop');
+        const btnMobile = document.getElementById('btnMobile');
+        if (mode === 'mobile') {
+            sandbox.classList.add('mobile-mode');
+            btnDesktop.classList.remove('active');
+            btnMobile.classList.add('active');
+        } else {
+            sandbox.classList.remove('mobile-mode');
+            btnDesktop.classList.add('active');
+            btnMobile.classList.remove('active');
+        }
+    };
 
     // Trigger preview on load
     setTimeout(updatePreview, 100);
